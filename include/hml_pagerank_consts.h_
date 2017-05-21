@@ -1,0 +1,65 @@
+/*****************************************************************
+ *  Copyright (c) 2012, Palo Alto Research Center.               *
+ *  All rights reserved.                                         *
+ *****************************************************************/
+
+/*
+ * hml_pagerank_spmv_const.h:  property graph constants
+ */
+
+#ifndef HML_PAGERANK_SPMV_CONSTS_H_INCLUDED_
+#define HML_PAGERANK_SPMV_CONSTS_H_INCLUDED_
+
+#define NIL                ((UInt32)-1)
+#define NIL_OFFSET         ((UInt32)-1)
+#define MAX_VERTEX_TYPE    0xFFFFU  /* maximum legal vertex type value */
+#define MAX_EDGE_TYPE      0xFFFFU  /* maximum legal linktype value */
+#define EDGE_TYPE_ALIGN    16       /* shift edgetype::offset right
+                                      * by this much to extract the
+                                      * edge type. */
+
+/* This is used as the only edgeType::Offset entry for a run of
+ * missing parent ID's.  It terminates any previous assemblies
+ * properly and terminates dummy assemblies for missing parents
+ * properly.  The trick is that the first successor for the first
+ * linktype for the missing parent is the dummy linktype itself.
+ */
+#define DUMMY_TOC_ENTRY    ((MAX_EDGE_TYPE << EDGE_TYPE_ALIGN) | 0)
+
+#define DUMMY_VERTEX_EDGE_OFFSET   0xFFFFU  /* says "this is a dummy offset,
+                                             * the real offset is in the next
+                                             * word" */
+
+#define EDGE_OFFSET_MASK    0xFFFFU  /* AND this with edgetype::offset
+                                      * to extract the offset. */
+
+#define MAX_VERTEX_EDGE_OFFSET     0xFFFEU  /* max legal 16-bit offset val */
+
+/* Here's the initial size of the array of TOC_Addr_t that are used to
+ * build up the TableOfContents of each assembly.
+ */
+#define INIT_SIZEOF_TOC_ARRAY 512
+
+/* size of the <vertexId, edgeId> tuple in terms of Int32
+ */
+#define VERTEX_EDGE_ID_SIZE_IN_INT32 2
+
+/* Here are the initial sizes of the array of assemblies and the index
+ * into that array.
+ */
+#define INIT_SIZEOF_SUCCESSOR_ARRAY 400000
+#define MAX_SIZEOF_SUCCESSOR_ARRAY ((UInt32)-1)
+
+#define INIT_SIZEOF_SUCCESSOR_INDEX_ARRAY 100000
+#define MAX_SIZEOF_SUCCESSOR_INDEX_ARRAY ((UInt32)-1)
+
+#define MAX_EDGE_OFFSET     0xFFFEU  /* max legal 16-bit offset val */
+
+#define DUMMY_EDGE_OFFSET   0xFFFFU  /* says "this is a dummy offset,
+                                      * the real offset is in the next
+                                      * word" */
+
+#define cMaxGraphCoreDirections 2   /* max number of traversal directions
+                                     * a property graph can have */
+
+#endif    /* HML_PAGERANK_SPMV_CONSTS_H_INCLUDED_ */

@@ -1,0 +1,2 @@
+project(hml_triangle_count)
+add_hml_executable(hml_triangle_count hml_triangle_count_main.cu)
