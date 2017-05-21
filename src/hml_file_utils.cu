@@ -104,7 +104,9 @@ hmlFileClose(FILE *file) {
 
 char const *
 hmlBasename(char const *path) {
-  if(!path) return NULL;
+  if(!path) {
+    return NULL;
+  }
   char const *s = strrchr(path, '/');
   return (s == NULL) ? path : ++s;
 }
@@ -145,7 +147,8 @@ hmlFileCreateLineOffsetArray(FILE     *file,
       if(*offsetArrSize < cHmlFileOffsetArrSizeMax / 2) {
         *offsetArrSize *= 2;
         *offsetArrSize = max(*offsetArrSize, cHmlFileOffsetArrSizeInit);
-      } else {
+      }
+      else {
         *offsetArrSize = cHmlFileOffsetArrSizeMax;
       }
       REALLOC(*offsetArr, uint64_t, *offsetArrSize);
@@ -225,9 +228,9 @@ hmlFileReadUint64Array(FILE *file, uint64_t **array, uint32_t *arraySize) {
 
 HmlErrCode
 hmlFilePrintfloatArrayExt(FILE          *file,
-                            float const *array,
-                            uint32_t         arraySize,
-                            int            separator) {
+                          float const *array,
+                          uint32_t         arraySize,
+                          int            separator) {
   HML_ERR_PROLOGUE;
   uint32_t idx;
   int    result;
@@ -244,7 +247,7 @@ hmlFilePrintfloatArrayExt(FILE          *file,
 
 HmlErrCode
 hmlFilePrintfloatArray(FILE          *file,
-                         float const *array,
-                         uint32_t         arraySize) {
+                       float const *array,
+                       uint32_t         arraySize) {
   return hmlFilePrintfloatArrayExt(file, array, arraySize, '\n');
 }

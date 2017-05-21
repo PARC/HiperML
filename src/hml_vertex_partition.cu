@@ -16,7 +16,7 @@ hmlVertexPartitionEntriesInit(HmlVertexPartitionEntries *entries) {
 
   memset(entries, 0, sizeof(*entries));
   MALLOC(entries->data, HmlVertexPartitionEntry,
-                   cHmlVertexPartitionEntriesInitSize);
+         cHmlVertexPartitionEntriesInitSize);
   entries->size = cHmlVertexPartitionEntriesInitSize;
 
   HML_NORMAL_RETURN;
@@ -24,9 +24,15 @@ hmlVertexPartitionEntriesInit(HmlVertexPartitionEntries *entries) {
 
 static bool
 hmlVertexPartitionEntriesIsInitialized(HmlVertexPartitionEntries *entries) {
-  if (!entries) return false;
-  if (!entries->size) return false;
-  if (entries->used) return false;
+  if(!entries) {
+    return false;
+  }
+  if(!entries->size) {
+    return false;
+  }
+  if(entries->used) {
+    return false;
+  }
   return true;
 }
 
@@ -55,7 +61,7 @@ hmlVertexPartitionEntriesAppend(HmlVertexPartitionEntries *entries,
                                 uint32_t maxVertex, uint64_t numEdges) {
   HML_ERR_PROLOGUE;
 
-  if (entries->used == entries->size) {
+  if(entries->used == entries->size) {
     HML_ERR_PASS(hmlVertexPartitionEntriesGrow(entries));
   }
   HML_ERR_GEN(entries->used >= entries->size, cHmlErrGeneral);
@@ -72,8 +78,12 @@ hmlVertexPartitionEntriesGet(HmlVertexPartitionEntries *entries,
   HML_ERR_PROLOGUE;
 
   HML_ERR_GEN(idx >= entries->used, cHmlErrGeneral);
-  if (maxVertex) *maxVertex = entries->data[idx].maxVertex;
-  if (numEdges) *numEdges = entries->data[idx].numEdges;
+  if(maxVertex) {
+    *maxVertex = entries->data[idx].maxVertex;
+  }
+  if(numEdges) {
+    *numEdges = entries->data[idx].numEdges;
+  }
 
   HML_NORMAL_RETURN;
 }
@@ -91,10 +101,15 @@ hmlVertexPartitionInit(HmlVertexPartition *vertexPartition) {
 
 static bool
 hmlVertexPartitionIsInitialized(HmlVertexPartition *vertexPartition) {
-  if (!vertexPartition) return false;
-  if (vertexPartition->numPartitions) return false;
-  if (!hmlVertexPartitionEntriesIsInitialized(&vertexPartition->entries))
+  if(!vertexPartition) {
     return false;
+  }
+  if(vertexPartition->numPartitions) {
+    return false;
+  }
+  if(!hmlVertexPartitionEntriesIsInitialized(&vertexPartition->entries)) {
+    return false;
+  }
   return true;
 }
 
@@ -137,11 +152,12 @@ hmlVertexPartitionGetMinMaxVertex(HmlVertexPartition *vertexPartition,
                                   uint32_t *maxVertex) {
   HML_ERR_PROLOGUE;
   HML_ERR_GEN(partition >= vertexPartition->numPartitions, cHmlErrGeneral);
-  if (partition > 0) {
+  if(partition > 0) {
     HML_ERR_PASS(hmlVertexPartitionEntriesGet(&vertexPartition->entries,
                  partition - 1, minVertex, NULL));
     ++(*minVertex);
-  } else {
+  }
+  else {
     *minVertex = 0;
   }
   HML_ERR_PASS(hmlVertexPartitionEntriesGet(&vertexPartition->entries,
@@ -164,7 +180,8 @@ hmlVertexPartitionComputeSize(uint32_t             *vertexDegreeArr,
   for(vertex = 0; vertex < numVertices; ++vertex) {
     if(numEdges + vertexDegreeArr[vertex] <= maxNumEdgesPerPartition) {
       numEdges += vertexDegreeArr[vertex];
-    } else {
+    }
+    else {
       HML_ERR_PASS(hmlVertexPartitionAddEntry(vertexPartition, vertex - 1,
                                               numEdges));
       numEdges = vertexDegreeArr[vertex];

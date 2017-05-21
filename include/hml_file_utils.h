@@ -103,33 +103,33 @@ hmlFileReadUint64Array(FILE           *file,
 
 HmlErrCode
 hmlFilePrintFloatArrayExt(FILE          *file,
-                            float const *array,
-                            uint32_t         arraySize,
-                            int            separator);
+                          float const *array,
+                          uint32_t         arraySize,
+                          int            separator);
 
 HmlErrCode
 hmlFilePrintFloatArray(FILE          *file,
-                         float const *array,
-                         uint32_t         arraySize);
+                       float const *array,
+                       uint32_t         arraySize);
 
 /* Caller is responsible for freeing array */
 HmlErrCode
 hmlFileScanFloatArrayExt(FILE     *file,
-                           float **array,
-                           uint32_t   *arraySize,
-                           int       separator);
+                         float **array,
+                         uint32_t   *arraySize,
+                         int       separator);
 
 /* Caller is responsible for freeing array */
 HmlErrCode
 hmlFileScanFloatArray(FILE     *file,
-                        float **array,
-                        uint32_t   *arraySize);
+                      float **array,
+                      uint32_t   *arraySize);
 
 /* Caller is responsible for freeing array */
 HmlErrCode
 hmlFilePathScanFloatArray(char const *path,
-                            float   **array,
-                            uint32_t     *arraySize);
+                          float   **array,
+                          uint32_t     *arraySize);
 
 #ifdef __cplusplus
 }

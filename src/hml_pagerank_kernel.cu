@@ -15,28 +15,26 @@
 #define cHmlPagerankThreadsPerBlock    512
 
 __global__ void
-hmlPagerankInitKernel(float *devMap, float initVal, uint32_t numVertices)
-{
+hmlPagerankInitKernel(float *devMap, float initVal, uint32_t numVertices) {
   int tid = threadIdx.x + blockIdx.x * blockDim.x;
-  
-  while (tid < numVertices) {
+
+  while(tid < numVertices) {
     devMap[tid] = initVal;
     tid += blockDim.x * gridDim.x;
   }
 }
 
 void
-hmlPagerankKernelArgPrint(HmlPagerankKernelArg *kernelArgs, uint32_t numPartitions)
-{
-  for (uint32_t i = 0; i < numPartitions; ++i) {
+hmlPagerankKernelArgPrint(HmlPagerankKernelArg *kernelArgs, uint32_t numPartitions) {
+  for(uint32_t i = 0; i < numPartitions; ++i) {
     fprintf(stderr, "; Info: Kernel arg #%d:\n", i);
     fprintf(stderr, "; Info:     id            = %d\n", kernelArgs[i].id);
     fprintf(stderr, "; Info:     minDeg        = %d\n", kernelArgs[i].minDeg);
     fprintf(stderr, "; Info:     maxDeg        = %d\n", kernelArgs[i].maxDeg);
     fprintf(stderr, "; Info:     minVertexRank = %d\n",
-      kernelArgs[i].minVertexRank);
+            kernelArgs[i].minVertexRank);
     fprintf(stderr, "; Info:     maxVertexRank = %d\n",
-      kernelArgs[i].maxVertexRank);
+            kernelArgs[i].maxVertexRank);
     fprintf(stderr, "; Info:     # of vertices = %d\n",
             kernelArgs[i].maxVertexRank - kernelArgs[i].minVertexRank + 1);
   }
@@ -52,23 +50,23 @@ void
 hmlPagerankGridDimCalc(dim3   *grid,
                        uint32_t  numBlocks,
                        uint32_t  gridDimXMin,
-                       uint32_t  gridDimXMax)
-{
+                       uint32_t  gridDimXMax) {
   uint32_t gridDimX;
   uint32_t gridDimY;
 
-  if (gridDimXMax > cHmlMaxGridDimX) {
+  if(gridDimXMax > cHmlMaxGridDimX) {
     fprintf(stderr, "; Error: gridDimXMax = %d > cHmlMaxGridDimX = %d\n",
             gridDimXMax, cHmlMaxGridDimX);
     exit(EXIT_FAILURE);
   }
   /* double gridDimX until gridDimY is no more than cHmlMaxGridDimY */
-  for (gridDimX = gridDimXMin; gridDimX <= gridDimXMax; gridDimX *= 2) {
+  for(gridDimX = gridDimXMin; gridDimX <= gridDimXMax; gridDimX *= 2) {
     gridDimY = (numBlocks + gridDimX - 1) / gridDimX;
-    if (gridDimY <= cHmlMaxGridDimY)
-      break;    
+    if(gridDimY <= cHmlMaxGridDimY) {
+      break;
+    }
   }
-  if (gridDimX > gridDimXMax) {
+  if(gridDimX > gridDimXMax) {
     fprintf(stderr, "; Error: gridDimX > gridDimXMax\n");
     exit(EXIT_FAILURE);
   }
@@ -81,31 +79,33 @@ void
 hmlPagerankKernelArgSet(HmlPagerankKernelArg *kernelArgs,
                         uint32_t     numPartitions,
                         uint32_t    *minOutDeg, /* min out-degree of each partition */
-                        uint32_t    *partitionPrefixSize)
-{
+                        uint32_t    *partitionPrefixSize) {
   uint32_t          p;
   uint32_t          numVertices;
   uint32_t          numBlocks;
   uint32_t          numThreadsPerBlock;
-  
-  for (p = 0; p < numPartitions; ++p) {
+
+  for(p = 0; p < numPartitions; ++p) {
     kernelArgs[p].minDeg = minOutDeg[p];
-    if (p < numPartitions - 1)
+    if(p < numPartitions - 1) {
       kernelArgs[p].maxDeg = minOutDeg[p + 1];
-    if (p > 0)
+    }
+    if(p > 0) {
       kernelArgs[p].minVertexRank = partitionPrefixSize[p - 1];
-    else
+    }
+    else {
       kernelArgs[0].minVertexRank = 0;
+    }
     kernelArgs[p].maxVertexRank = partitionPrefixSize[p];
   }
   /* the last kernel instance always has maxDeg = infinity */
   kernelArgs[numPartitions - 1].maxDeg = (uint32_t)-1;
 
   /* setup the grid and block args for each partition */
-  for (p = 0; p < numPartitions; ++p) {
+  for(p = 0; p < numPartitions; ++p) {
     numVertices =
       kernelArgs[p].maxVertexRank - kernelArgs[p].minVertexRank; /* no +1 */
-    switch (kernelArgs[p].id) {
+    switch(kernelArgs[p].id) {
     case 0:
       kernelArgs[p].block.x = 8;
       kernelArgs[p].block.y = 8;
@@ -157,24 +157,23 @@ hmlPagerankKernelSetup(HmlPagerankKernel    *evenIterKernel,
                        uint32_t                maxNumKernels,
                        bool                  useTextureMem,
                        uint32_t               *numPartitions,
-                       HmlPagerankKernelArg *kernelArgArr)
-{
+                       HmlPagerankKernelArg *kernelArgArr) {
   assert(maxNumKernels >= 3);
 
   *numPartitions = 3;
   evenIterKernel[0] = useTextureMem ?
-    hmlPagerankKernelEvenIter0<true> : hmlPagerankKernelEvenIter0<false>;
+                      hmlPagerankKernelEvenIter0<true> : hmlPagerankKernelEvenIter0<false>;
   evenIterKernel[1] = useTextureMem ?
-    hmlPagerankKernelEvenIter1<true> : hmlPagerankKernelEvenIter1<false>; 
+                      hmlPagerankKernelEvenIter1<true> : hmlPagerankKernelEvenIter1<false>;
   evenIterKernel[2] = useTextureMem ?
-    hmlPagerankKernelEvenIter2<true> : hmlPagerankKernelEvenIter2<false>;
+                      hmlPagerankKernelEvenIter2<true> : hmlPagerankKernelEvenIter2<false>;
 
   oddIterKernel[0] = useTextureMem ?
-    hmlPagerankKernelOddIter0<true> : hmlPagerankKernelOddIter0<false>;
+                     hmlPagerankKernelOddIter0<true> : hmlPagerankKernelOddIter0<false>;
   oddIterKernel[1] = useTextureMem ?
-    hmlPagerankKernelOddIter1<true> : hmlPagerankKernelOddIter1<false>; 
+                     hmlPagerankKernelOddIter1<true> : hmlPagerankKernelOddIter1<false>;
   oddIterKernel[2] = useTextureMem ?
-    hmlPagerankKernelOddIter2<true> : hmlPagerankKernelOddIter2<false>;
+                     hmlPagerankKernelOddIter2<true> : hmlPagerankKernelOddIter2<false>;
 
   /* set CUDA cache preference for kernels
    * cudaFuncCachePreferL1 makes code run ~6% faster
@@ -191,7 +190,7 @@ hmlPagerankKernelSetup(HmlPagerankKernel    *evenIterKernel,
   minOutDegArr[0] = 1;
   minOutDegArr[1] = 32;
   minOutDegArr[2] = 1024;
-  
+
   /* init kernel arg array */
   kernelArgArr[0].id = 0; /* use kernel id 0 for first partition */
   kernelArgArr[1].id = 1; /* use kernel id 1 for second partition */

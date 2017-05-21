@@ -49,19 +49,19 @@ typedef struct {
 } HmlSgemvKernelConfig;
 
 typedef void (*HmlSgemvKernelVarN)(float       *y,
-                                const float *A,
-                                const float *x,
-                                const int    M,
-                                const int    N,
-                                const float  alpha,
-                                const float  beta);
+                                   const float *A,
+                                   const float *x,
+                                   const int    M,
+                                   const int    N,
+                                   const float  alpha,
+                                   const float  beta);
 
 typedef void (*HmlSgemvKernelConstN)(float       *y,
-                                  const float *A,
-                                  const float *x,
-                                  const int    M,
-                                  const float  alpha,
-                                  const float  beta);
+                                     const float *A,
+                                     const float *x,
+                                     const int    M,
+                                     const float  alpha,
+                                     const float  beta);
 
 typedef struct {
   HmlSgemvKernelVarN   basic[cHmlMaxBlockStops+1];
@@ -70,28 +70,28 @@ typedef struct {
 } HmlSgemvKernelRepo;
 
 void hmlSgemvKernelArgSet(HmlKernelArg *arg,
-                       int        M,
-                       int        N,
-                       int        K,
-                       int        colStops,
-                       int        rowStops);
+                          int        M,
+                          int        N,
+                          int        K,
+                          int        colStops,
+                          int        rowStops);
 
 /* uses global array: hmlSgemvKernelConfig[] to pick the best
  * SGEMV kernel
  */
 void
 hmlSgemvKernelSelect(HmlSgemvKernelVarN   *varN,
-                  HmlSgemvKernelConstN *constN,
-                  HmlKernelArg         *karg,
-                  const int          M,
-                  const int          N);
+                     HmlSgemvKernelConstN *constN,
+                     HmlKernelArg         *karg,
+                     const int          M,
+                     const int          N);
 
 void
 hmlSgemvKernelSelectBasic(HmlSgemvKernelVarN   *varN,
-                       HmlKernelArg         *karg,
-                       const int          M,
-                       const int          N,
-                       const int          blockStops);
+                          HmlKernelArg         *karg,
+                          const int          M,
+                          const int          N,
+                          const int          blockStops);
 
 /* Single-precision general matrix multiplication (sGEMV) kernel.
  * matrix A is not transposed, and thus 'N' function name suffix
@@ -99,12 +99,12 @@ hmlSgemvKernelSelectBasic(HmlSgemvKernelVarN   *varN,
  */
 __global__ void
 hmlSgemvKernel1T1RGmemN(float       *y,
-               const float *A,
-               const float *x,
-               const int    M,
-               const int    N,
-               const float  alpha,
-               const float  beta);
+                        const float *A,
+                        const float *x,
+                        const int    M,
+                        const int    N,
+                        const float  alpha,
+                        const float  beta);
 
 /* Single-precision general matrix multiplication (sGEMV) kernel.
  * matrix A is not transposed, and thus 'N' function name suffix
@@ -112,27 +112,27 @@ hmlSgemvKernel1T1RGmemN(float       *y,
  */
 __global__ void
 hmlSgemvKernel1T1RSmemN(float       *y,
-               const float *A,
-               const float *x,
-               const int    M,
-               const int    N,
-               const float  alpha,
-               const float  beta);
+                        const float *A,
+                        const float *x,
+                        const int    M,
+                        const int    N,
+                        const float  alpha,
+                        const float  beta);
 
 __global__ void
 hmlSgemvKernel128T1RN(float       *y,
-             const float *A,
-             const float *x,
-             const int    M,
-             const int    N,
-             const float  alpha,
-             const float  beta);
+                      const float *A,
+                      const float *x,
+                      const int    M,
+                      const int    N,
+                      const float  alpha,
+                      const float  beta);
 
 void hmlSgemvKernelInit(void);
 
 void hmlSgemvKernelConfigOnline(int maxMxN,
-                             int testTrialsPerKernel,
-                             int verbosity);
+                                int testTrialsPerKernel,
+                                int verbosity);
 
 void hmlSgemvKernelConfigReadFile(const char *fileName);
 

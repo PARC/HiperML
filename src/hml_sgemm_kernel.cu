@@ -34,7 +34,7 @@
   "#example meaning:\n"\
   "#  if number of columns of A is 2 and number of column stops is 1,\n"\
   "#  then choose the const-K SGEMM kernel with 16 row stops\n"\
-
+ 
 #ifdef HML_USE_TEXTURE_MEM
 extern texture<float, 1> texFloatA;
 extern texture<float, 1> texFloatB;
@@ -83,12 +83,11 @@ initSGemmKernel6(
   HmlSgemmKernelConstK constK[cHmlMaxSkinnyK+1][cHmlMaxStops+1][cHmlMaxStops+1]);
 
 void hmlSgemmKernelArgSet(HmlKernelArg *arg,
-                       int        M,
-                       int        N,
-                       int        K,
-                       int        colStops,
-                       int        rowStops)
-{
+                          int        M,
+                          int        N,
+                          int        K,
+                          int        colStops,
+                          int        rowStops) {
   arg->block.x = 64;
   arg->block.y = 4;
   arg->block.z = 1;
@@ -98,9 +97,9 @@ void hmlSgemmKernelArgSet(HmlKernelArg *arg,
   arg->grid.y = (rowBlocks + cHmlMaxGridDimX - 1) / cHmlMaxGridDimX;
   int BsubCols = 16 * colStops;
   int colBlocks = (N + BsubCols - 1) / BsubCols;
-  if (colBlocks > cHmlMaxGridDimZ) {
+  if(colBlocks > cHmlMaxGridDimZ) {
     fprintf(stderr, "; Error: # of column blocks exceeds system limit (%d)\n",
-      cHmlMaxGridDimZ);
+            cHmlMaxGridDimZ);
     exit(1);
   }
   arg->grid.z = colBlocks;
@@ -109,16 +108,18 @@ void hmlSgemmKernelArgSet(HmlKernelArg *arg,
 
 void
 hmlSgemmKernelReset(int             K,
-                 HmlSgemmKernelType type,
-                 int             colStops,
-                 int             rowStops)
-{
-  if (type == eHmlSgemmKernelBasic)
+                    HmlSgemmKernelType type,
+                    int             colStops,
+                    int             rowStops) {
+  if(type == eHmlSgemmKernelBasic) {
     sgemmKernelRepo.basic = NULL;
-  else if (type == eHmlSgemmKernelVarK)
+  }
+  else if(type == eHmlSgemmKernelVarK) {
     sgemmKernelRepo.varK[colStops][rowStops] = NULL;
-  else if (type == eHmlSgemmKernelConstK)
+  }
+  else if(type == eHmlSgemmKernelConstK) {
     sgemmKernelRepo.constK[K][colStops][rowStops] = NULL;
+  }
   else {
     fprintf(stderr, "; Error: Invalid kernel type '%d'\n", type);
     exit(1);
@@ -127,35 +128,42 @@ hmlSgemmKernelReset(int             K,
 
 void
 hmlSgemmKernelGet(HmlSgemmKernelVarK   *varK,
-               HmlSgemmKernelConstK *constK,
-               int                K,
-               HmlSgemmKernelType    type,
-               int                colStops,
-               int                rowStops)
-{
-  if (type == eHmlSgemmKernelBasic) {
-    if (varK)
+                  HmlSgemmKernelConstK *constK,
+                  int                K,
+                  HmlSgemmKernelType    type,
+                  int                colStops,
+                  int                rowStops) {
+  if(type == eHmlSgemmKernelBasic) {
+    if(varK) {
       *varK   = sgemmKernelRepo.basic;
-    if (constK)
+    }
+    if(constK) {
       *constK = NULL;
+    }
   }
-  else if (type == eHmlSgemmKernelVarK) {
-    if (varK)
+  else if(type == eHmlSgemmKernelVarK) {
+    if(varK) {
       *varK   = sgemmKernelRepo.varK[colStops][rowStops];
-    if (constK)
+    }
+    if(constK) {
       *constK = NULL;
+    }
   }
-  else if (type == eHmlSgemmKernelConstK) {
-    if (varK)
+  else if(type == eHmlSgemmKernelConstK) {
+    if(varK) {
       *varK   = NULL;
-    if (constK)
+    }
+    if(constK) {
       *constK = sgemmKernelRepo.constK[K][colStops][rowStops];
+    }
   }
   else {
-    if (varK)
+    if(varK) {
       *varK   = NULL;
-    if (constK)
+    }
+    if(constK) {
       *constK = NULL;
+    }
     fprintf(stderr, "; Error: Invalid kernel type '%d'\n", type);
     exit(1);
   }
@@ -163,17 +171,16 @@ hmlSgemmKernelGet(HmlSgemmKernelVarK   *varK,
 
 void
 hmlSgemmKernelSelectBasic(HmlSgemmKernelVarK   *basic,
-                       HmlKernelArg         *karg,
-                       const int          M,
-                       const int          N,
-                       const int          K)
-{
-  if (basic)
+                          HmlKernelArg         *karg,
+                          const int          M,
+                          const int          N,
+                          const int          K) {
+  if(basic)
     *basic =
       sgemmKernelRepo.varK[cHmlSgemmKernelBasicStops][cHmlSgemmKernelBasicStops];
-  if (karg)
+  if(karg)
     hmlSgemmKernelArgSet(karg, M, N, K,
-                      cHmlSgemmKernelBasicStops, cHmlSgemmKernelBasicStops);
+                         cHmlSgemmKernelBasicStops, cHmlSgemmKernelBasicStops);
 }
 
 /* uses global array: hmlSgemmKernelConfig[][] to pick the best
@@ -181,22 +188,23 @@ hmlSgemmKernelSelectBasic(HmlSgemmKernelVarK   *basic,
  */
 void
 hmlSgemmKernelSelect(HmlSgemmKernelVarK   *varK,
-                  HmlSgemmKernelConstK *constK,
-                  HmlKernelArg         *karg,
-                  const int          M,
-                  const int          N,
-                  const int          K)
-{
+                     HmlSgemmKernelConstK *constK,
+                     HmlKernelArg         *karg,
+                     const int          M,
+                     const int          N,
+                     const int          K) {
   HmlSgemmKernelType type;
   int             colStops;
   int             rowStops;
 
-  if (N <= cHmlMaxSkinnyN)
+  if(N <= cHmlMaxSkinnyN) {
     colStops = (N + 15) / 16;
-  else /* N > cHmlMaxSkinnyN */
+  }
+  else { /* N > cHmlMaxSkinnyN */
     colStops = (cHmlMaxSkinnyN + 15) / 16;
+  }
 
-  if (K <= cHmlMaxSkinnyK) {
+  if(K <= cHmlMaxSkinnyK) {
     type     = hmlSgemmKernelConfig[K][colStops].type;
     rowStops = hmlSgemmKernelConfig[K][colStops].rowStops;
   }
@@ -205,7 +213,7 @@ hmlSgemmKernelSelect(HmlSgemmKernelVarK   *varK,
     rowStops = hmlSgemmKernelConfig[cHmlMaxSkinnyK][colStops].rowStops;
   }
   /* is this an invalid config rule? */
-  if (rowStops <= 0) {
+  if(rowStops <= 0) {
     type = eHmlSgemmKernelBasic; /* use basic kernel for invalid rules */
     rowStops = colStops = cHmlSgemmKernelBasicStops;
   }
@@ -213,7 +221,7 @@ hmlSgemmKernelSelect(HmlSgemmKernelVarK   *varK,
   /* even if the rule is valid, let's check if the desired kernel
    * is actually available or not. If not, fall back to basic kernel
    */
-  if (*constK || *varK) {
+  if(*constK || *varK) {
     /* kernel available, let's setup kernel arguments */
     hmlSgemmKernelArgSet(karg, M, N, K, colStops, rowStops);
   }
@@ -237,21 +245,21 @@ hmlSgemmKernelSelect(HmlSgemmKernelVarK   *varK,
 void
 hmlSgemmKernelResetInvalid(
   HmlSgemmKernelVarK   varK[cHmlMaxStops+1][cHmlMaxStops+1],
-  HmlSgemmKernelConstK constK[cHmlMaxSkinnyK+1][cHmlMaxStops+1][cHmlMaxStops+1])
-{
+  HmlSgemmKernelConstK constK[cHmlMaxSkinnyK+1][cHmlMaxStops+1][cHmlMaxStops+1]) {
   int colStops;
   int rowStops;
   int K;
   cudaDeviceProp prop;
 
   HANDLE_ERROR(cudaGetDeviceProperties(&prop, 0));
-  for (colStops = 1; colStops <= cHmlMaxStops; ++colStops) {
-    for (rowStops = 1; rowStops <= cHmlMaxStops; ++rowStops) {
+  for(colStops = 1; colStops <= cHmlMaxStops; ++colStops) {
+    for(rowStops = 1; rowStops <= cHmlMaxStops; ++rowStops) {
       /* the following inequality test is only a heuristic! */
-      if (colStops * rowStops > hmlMaxNumRegistersPerThread(&prop)) {
+      if(colStops * rowStops > hmlMaxNumRegistersPerThread(&prop)) {
         varK[colStops][rowStops] = NULL;
-        for (K = 1; K <= cHmlMaxSkinnyK; ++K)
+        for(K = 1; K <= cHmlMaxSkinnyK; ++K) {
           constK[K][colStops][rowStops] = NULL;
+        }
       }
     }
   }
@@ -260,8 +268,7 @@ hmlSgemmKernelResetInvalid(
 void
 hmlSgemmKernelInit(
   HmlSgemmKernelVarK   varK[cHmlMaxStops+1][cHmlMaxStops+1],
-  HmlSgemmKernelConstK constK[cHmlMaxSkinnyK+1][cHmlMaxStops+1][cHmlMaxStops+1])
-{
+  HmlSgemmKernelConstK constK[cHmlMaxSkinnyK+1][cHmlMaxStops+1][cHmlMaxStops+1]) {
   int numConstKKernels = (cHmlMaxSkinnyK + 1) * (cHmlMaxStops + 1) * (cHmlMaxStops + 1);
   int numVarKKernels = (cHmlMaxStops + 1) * (cHmlMaxStops + 1);
   memset(constK, 0, sizeof(HmlSgemmKernelConstK) * numConstKKernels);
@@ -276,12 +283,11 @@ hmlSgemmKernelInit(
   hmlSgemmKernelResetInvalid(varK, constK);
 }
 
-void hmlSgemmKernelRepoInit(void)
-{
-  if (!sgemmKernelRepoInitialized) {
+void hmlSgemmKernelRepoInit(void) {
+  if(!sgemmKernelRepoInitialized) {
     hmlSgemmKernelInit(sgemmKernelRepo.varK, sgemmKernelRepo.constK);
     hmlSgemmKernelSelectBasic(&sgemmKernelRepo.basic, NULL, 0, 0, 0);
-    if (!sgemmKernelRepo.basic) {
+    if(!sgemmKernelRepo.basic) {
       fprintf(stderr, "; Error: SGEMM basic kernel not found.\n");
       exit(1);
     }
@@ -294,14 +300,13 @@ hmlSgemmKernelSetOpt(
   int    K,
   int    colStops,
   int    optRowStops[cHmlSgemmKernelTypes],
-  double GFLOPS[cHmlMaxSkinnyK+1][cHmlMaxStops+1][cHmlSgemmKernelTypes][cHmlMaxStops+1])
-{
+  double GFLOPS[cHmlMaxSkinnyK+1][cHmlMaxStops+1][cHmlSgemmKernelTypes][cHmlMaxStops+1]) {
   int    type;
   int    optType = 0;
   double maxGFLOPS = 0.0;
 
-  for (type = 0; type < cHmlSgemmKernelTypes; ++type) {
-    if (GFLOPS[K][colStops][type][optRowStops[type]] > maxGFLOPS) {
+  for(type = 0; type < cHmlSgemmKernelTypes; ++type) {
+    if(GFLOPS[K][colStops][type][optRowStops[type]] > maxGFLOPS) {
       maxGFLOPS = GFLOPS[K][colStops][type][optRowStops[type]];
       optType = type;
     }
@@ -313,16 +318,17 @@ hmlSgemmKernelSetOpt(
 void
 hmlSgemmKernelConfigPrintStats(double GFLOPS[cHmlMaxSkinnyK+1][cHmlMaxStops+1][cHmlSgemmKernelTypes][cHmlMaxStops+1],
                                int type, char const *typeStr) {
-    /* output GFLOPS summary */
+  /* output GFLOPS summary */
   fprintf(stderr, "%s GFLOPS:\n", typeStr);
   fprintf(stderr, "   K    N=16    N=32    N=48    N=64    N=80    N=96\n");
   fprintf(stderr, "====================================================\n");
-  for (int K = 2; K <= cHmlMaxSkinnyK; ++K) {
+  for(int K = 2; K <= cHmlMaxSkinnyK; ++K) {
     fprintf(stderr, "%4d", K);
-    for (int colStops = 1; colStops <= (cHmlMaxSkinnyN + 15) / 16; ++colStops) {
+    for(int colStops = 1; colStops <= (cHmlMaxSkinnyN + 15) / 16; ++colStops) {
       double maxGFLOPS = 0.0;
-      for (int rowStops = 1; rowStops <= cHmlMaxStops; ++rowStops)
+      for(int rowStops = 1; rowStops <= cHmlMaxStops; ++rowStops) {
         maxGFLOPS = max(maxGFLOPS, GFLOPS[K][colStops][type][rowStops]);
+      }
       fprintf(stderr, " %7.2lf", maxGFLOPS);
     }
     fprintf(stderr, "\n");
@@ -330,13 +336,13 @@ hmlSgemmKernelConfigPrintStats(double GFLOPS[cHmlMaxSkinnyK+1][cHmlMaxStops+1][c
   fprintf(stderr, "%s max / min:\n", typeStr);
   fprintf(stderr, "   K    N=16    N=32    N=48    N=64    N=80    N=96\n");
   fprintf(stderr, "====================================================\n");
-  for (int K = 2; K <= cHmlMaxSkinnyK; ++K) {
+  for(int K = 2; K <= cHmlMaxSkinnyK; ++K) {
     fprintf(stderr, "%4d", K);
-    for (int colStops = 1; colStops <= (cHmlMaxSkinnyN + 15) / 16; ++colStops) {
+    for(int colStops = 1; colStops <= (cHmlMaxSkinnyN + 15) / 16; ++colStops) {
       double minGFLOPS = std::numeric_limits<double>::max();
       double maxGFLOPS = 0.0;
-      for (int rowStops = 1; rowStops <= cHmlMaxStops; ++rowStops) {
-        if (GFLOPS[K][colStops][type][rowStops] > 0.0) {
+      for(int rowStops = 1; rowStops <= cHmlMaxStops; ++rowStops) {
+        if(GFLOPS[K][colStops][type][rowStops] > 0.0) {
           minGFLOPS = min(minGFLOPS, GFLOPS[K][colStops][type][rowStops]);
           maxGFLOPS = max(maxGFLOPS, GFLOPS[K][colStops][type][rowStops]);
         }
@@ -348,14 +354,13 @@ hmlSgemmKernelConfigPrintStats(double GFLOPS[cHmlMaxSkinnyK+1][cHmlMaxStops+1][c
 }
 
 void
-hmlSgemmKernelConfigOnline(int testRows, int testTrialsPerKernel, int verbosity)
-{
+hmlSgemmKernelConfigOnline(int testRows, int testTrialsPerKernel, int verbosity) {
   double cpuStart, cpuEnd;
   double wallStart, wallEnd;
   std::vector<double> trialGFLOPS;
   double GFLOPS[cHmlMaxSkinnyK+1][cHmlMaxStops+1][cHmlSgemmKernelTypes][cHmlMaxStops+1];
   int numTestScenarios = cHmlSgemmKernelTypes *
-    (cHmlMaxSkinnyK + 1) * (cHmlMaxStops + 1) * (cHmlMaxStops + 1);
+                         (cHmlMaxSkinnyK + 1) * (cHmlMaxStops + 1) * (cHmlMaxStops + 1);
   float *hostA, *hostB, *hostC; /* C = A x B */
   int M, N, K;     /* A is M x K, B is K x N, C is M x N */
   int maxN;
@@ -372,14 +377,15 @@ hmlSgemmKernelConfigOnline(int testRows, int testTrialsPerKernel, int verbosity)
   cudaError_t       err;
   int               testFailures = 0;
 
-  if (!sgemmKernelRepoInitialized)
+  if(!sgemmKernelRepoInitialized) {
     hmlSgemmKernelRepoInit();
+  }
   M = testRows;
   maxN = cHmlMaxStops * 16;
-  hostA = (float*)malloc(M * cHmlMaxSkinnyK * sizeof(float));
-  hostB = (float*)malloc(maxN * cHmlMaxSkinnyK * sizeof(float));
-  hostC = (float*)malloc(M * maxN * sizeof(float));
-  if (!hostA || !hostB || !hostC) {
+  hostA = (float *)malloc(M * cHmlMaxSkinnyK * sizeof(float));
+  hostB = (float *)malloc(maxN * cHmlMaxSkinnyK * sizeof(float));
+  hostC = (float *)malloc(M * maxN * sizeof(float));
+  if(!hostA || !hostB || !hostC) {
     fprintf(stderr, "; Error: out of main memory\n");
     exit(1);
   }
@@ -401,57 +407,62 @@ hmlSgemmKernelConfigOnline(int testRows, int testTrialsPerKernel, int verbosity)
   memset(hmlSgemmKernelConfig, 0, sizeof(HmlSgemmKernelConfig) *
          (cHmlMaxSkinnyK + 1) * (cHmlMaxStops + 1));
   /* loop over values of K */
-  for (K = 2; K <= cHmlMaxSkinnyK; ++K) {
-    for (colStops = 1; colStops <= (cHmlMaxSkinnyN + 15) / 16; ++colStops) {
+  for(K = 2; K <= cHmlMaxSkinnyK; ++K) {
+    for(colStops = 1; colStops <= (cHmlMaxSkinnyN + 15) / 16; ++colStops) {
       N = colStops * 16;
       gflop = FLOPS_SGEMM(M, N, K) / 1e9;
-      for (type = 0; type < cHmlSgemmKernelTypes; ++type) {
+      for(type = 0; type < cHmlSgemmKernelTypes; ++type) {
         minGFLOPS = std::numeric_limits<double>::max();
         maxGFLOPS = 0.0;
         optRowStops[type] = 0;
         rowStops = (type == eHmlSgemmKernelBasic) ? 6 : 1;
-        for (; rowStops <= cHmlMaxStops; ++rowStops) {
-          if (type == eHmlSgemmKernelBasic) {
+        for(; rowStops <= cHmlMaxStops; ++rowStops) {
+          if(type == eHmlSgemmKernelBasic) {
             varK = sgemmKernelRepo.basic;
             /* skip any kernel that is not instantiated */
-            if (!varK)
+            if(!varK) {
               continue;
+            }
           }
-          else if (type == eHmlSgemmKernelVarK) {
+          else if(type == eHmlSgemmKernelVarK) {
             varK = sgemmKernelRepo.varK[colStops][rowStops];
             /* skip any kernel that is not instantiated */
-            if (!varK)
+            if(!varK) {
               continue;
+            }
           }
-          else if (type == eHmlSgemmKernelConstK) {
+          else if(type == eHmlSgemmKernelConstK) {
             constK = sgemmKernelRepo.constK[K][colStops][rowStops];
             /* skip any kernel that is not instantiated */
-            if (!constK)
+            if(!constK) {
               continue;
+            }
           }
-          else
+          else {
             continue;
+          }
           hmlSgemmKernelArgSet(&karg, M, N, K, colStops, rowStops);
           trialGFLOPS.clear();
           /* avoid warning that err may be uninitialized */
           err = cudaSuccess;
-          for (int trial = 0; trial < testTrialsPerKernel; ++trial) {
+          for(int trial = 0; trial < testTrialsPerKernel; ++trial) {
             hmlGetSecs(&cpuStart, &wallStart);   /* start the timer */
             /* invoke sGEMM kernal to compute C = alpha x A x B + beta x C */
-            if (type == eHmlSgemmKernelBasic || type == eHmlSgemmKernelVarK) {
+            if(type == eHmlSgemmKernelBasic || type == eHmlSgemmKernelVarK) {
               varK<<<karg.grid, karg.block, karg.allocBytes>>>(
                 devC, devA, devB, M, N, K, 1.0, 0.0);
             }
-            else if (type == eHmlSgemmKernelConstK) {
+            else if(type == eHmlSgemmKernelConstK) {
               constK<<<karg.grid, karg.block, karg.allocBytes>>>(
                 devC, devA, devB, M, N, 1.0, 0.0);
             }
-            else
+            else {
               continue;
+            }
             /* block until kernel completed */
             err = cudaDeviceSynchronize();
             hmlGetSecs(&cpuEnd, &wallEnd); /* stop the timer */
-            if (err != cudaSuccess) {
+            if(err != cudaSuccess) {
               fprintf(stderr,
                       "Warning: kernel[%2d][%2d][%1d][%2d] test failed '%s'\n",
                       K, colStops, type, rowStops, cudaGetErrorString(err));
@@ -460,22 +471,22 @@ hmlSgemmKernelConfigOnline(int testRows, int testTrialsPerKernel, int verbosity)
               break;
             }
             trialGFLOPS.push_back(gflop / (wallEnd - wallStart));
-            if (verbosity >= 3) {
+            if(verbosity >= 3) {
               fprintf(stderr,
                       "Info: kernel[%2d][%2d][%1d][%2d] = %7.2lf GFLOPS\n",
                       K, colStops, type, rowStops,
                       gflop / (wallEnd - wallStart));
             }
           }
-          if (err == cudaSuccess) {
+          if(err == cudaSuccess) {
             std::sort(trialGFLOPS.begin(), trialGFLOPS.end());
             GFLOPS[K][colStops][type][rowStops] =
               trialGFLOPS[testTrialsPerKernel / 2];
-            if (GFLOPS[K][colStops][type][rowStops] > maxGFLOPS) {
+            if(GFLOPS[K][colStops][type][rowStops] > maxGFLOPS) {
               maxGFLOPS = GFLOPS[K][colStops][type][rowStops];
               optRowStops[type] = rowStops;
             }
-            if (verbosity >= 2) {
+            if(verbosity >= 2) {
               fprintf(stderr,
                       "Info: kernel[%2d][%2d][%1d][%2d] = %7.2lf GFLOPS\n",
                       K, colStops, type, rowStops,
@@ -483,22 +494,24 @@ hmlSgemmKernelConfigOnline(int testRows, int testTrialsPerKernel, int verbosity)
             }
             minGFLOPS = min(minGFLOPS, GFLOPS[K][colStops][type][rowStops]);
           }
-          if (type == eHmlSgemmKernelBasic)
-            break; /* basic kernel only has a fixed number of rowStops */
+          if(type == eHmlSgemmKernelBasic) {
+            break;  /* basic kernel only has a fixed number of rowStops */
+          }
         }
-        if (verbosity >= 1 &&
+        if(verbosity >= 1 &&
             GFLOPS[K][colStops][type][optRowStops[type]] > 0.0) {
           fprintf(stderr,
                   "Info: kernel*[%2d][%2d][%1d][%2d] = %7.2lf GFLOPS",
                   K, colStops, type, optRowStops[type],
                   GFLOPS[K][colStops][type][optRowStops[type]]);
-          if (type != eHmlSgemmKernelBasic)
+          if(type != eHmlSgemmKernelBasic) {
             fprintf(stderr, ", max / min = %3.0lf%%", maxGFLOPS*100/minGFLOPS);
+          }
           fprintf(stderr, "\n");
           fflush(stderr);
         }
       }
-      if (verbosity >= 2) {
+      if(verbosity >= 2) {
         fprintf(stderr, "varK / gen = %3.0lf%%, constK / gen = %3.0lf%%\n",
                 GFLOPS[K][colStops][eHmlSgemmKernelVarK][optRowStops[eHmlSgemmKernelVarK]] * 100 /
                 GFLOPS[K][colStops][eHmlSgemmKernelBasic][optRowStops[eHmlSgemmKernelBasic]],
@@ -513,7 +526,7 @@ hmlSgemmKernelConfigOnline(int testRows, int testTrialsPerKernel, int verbosity)
    * hmlSgemmKernelReset(). But for now, we stop the program if
    * there is any test failures
    */
-  if (testFailures > 0) {
+  if(testFailures > 0) {
     fprintf(stderr, "; Error: Number of failed tests = %d\n", testFailures);
     exit(1);
   }
@@ -542,12 +555,11 @@ hmlSgemmKernelConfigOnline(int testRows, int testTrialsPerKernel, int verbosity)
 }
 
 void
-hmlSgemmKernelConfigPrint(FILE *file)
-{
+hmlSgemmKernelConfigPrint(FILE *file) {
   fprintf(file, HML_SGEMM_CONFIG_HEADER);
-  for (int K = 2; K <= cHmlMaxSkinnyK; ++K) {
-    for (int colStops = 1; colStops <= cHmlMaxStops; ++colStops) {
-      if (hmlSgemmKernelConfig[K][colStops].rowStops > 0)
+  for(int K = 2; K <= cHmlMaxSkinnyK; ++K) {
+    for(int colStops = 1; colStops <= cHmlMaxStops; ++colStops) {
+      if(hmlSgemmKernelConfig[K][colStops].rowStops > 0)
         fprintf(file, "%d %d : %d %d\n", K, colStops,
                 hmlSgemmKernelConfig[K][colStops].type,
                 hmlSgemmKernelConfig[K][colStops].rowStops);
@@ -559,8 +571,7 @@ hmlSgemmKernelConfigPrint(FILE *file)
  * hmlSgemmKernelConfig[][]
  */
 void
-hmlSgemmKernelConfigReadFile(const char *fileName)
-{
+hmlSgemmKernelConfigReadFile(const char *fileName) {
   FILE       *file;
   char        line[cHmlLineBufferSize];
   char       *str;
@@ -572,13 +583,16 @@ hmlSgemmKernelConfigReadFile(const char *fileName)
   memset(hmlSgemmKernelConfig, 0, sizeof(HmlSgemmKernelConfig) *
          (cHmlMaxSkinnyK + 1) * (cHmlMaxStops + 1));
   file = openFile(fileName, "rb");
-  while (!feof(file)) {
-    while (true) {
+  while(!feof(file)) {
+    while(true) {
       str = fgets(line, cHmlLineBufferSize, file);
-      if (!str || *str != '#')
+      if(!str || *str != '#') {
         break;
+      }
     }
-    if (!str) break;
+    if(!str) {
+      break;
+    }
     sscanf(str, "%d %d : %d %d\n", &K, &colStops, &type, &rowStops);
     hmlSgemmKernelConfig[K][colStops].type     = (HmlSgemmKernelType)type;
     hmlSgemmKernelConfig[K][colStops].rowStops = rowStops;

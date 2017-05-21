@@ -38,25 +38,25 @@ texture<float, 1> texFloatB;
  */
 void
 hmlSgemmBasic(float       *C,
-       const float *A,
-       const float *B,
-       const int    M,
-       const int    N,
-       const int    K,
-       const float  alpha,
-       const float  beta)
-{
+              const float *A,
+              const float *B,
+              const int    M,
+              const int    N,
+              const int    K,
+              const float  alpha,
+              const float  beta) {
   float *devA, *devB, *devC; /* matrices on CUDA device */
   HmlSgemmKernelVarK sGemmBasicKernel;
   HmlKernelArg karg;
 
   /* initialize SGEMM kernel repository if not yet done */
-  if (!sgemmKernelRepoInitialized)
+  if(!sgemmKernelRepoInitialized) {
     hmlSgemmKernelRepoInit();
+  }
 
 #ifdef HML_USE_TEXTURE_MEM
   /* cHmlMaxCudaTexture1DLinear is in terms of elements instead of bytes */
-  if (M * K >= cHmlMaxCudaTexture1DLinear || N * K >= cHmlMaxCudaTexture1DLinear) {
+  if(M * K >= cHmlMaxCudaTexture1DLinear || N * K >= cHmlMaxCudaTexture1DLinear) {
     fprintf(stderr, "CUDA maxTexture1DLinear exceeded\n");
     exit(1);
   }
@@ -80,22 +80,22 @@ hmlSgemmBasic(float       *C,
   hmlSgemmKernelSelectBasic(&sGemmBasicKernel, &karg, M, N, K);
   /* invoke sGEMM kernal to compute C = alpha x A x B + beta x C */
   sGemmBasicKernel<<<karg.grid, karg.block>>>(devC,
-                                              devA,
-                                              devB,
-                                              M,
-                                              N,
-                                              K,
-                                              alpha,
-                                              beta);
+      devA,
+      devB,
+      M,
+      N,
+      K,
+      alpha,
+      beta);
   /* block until computation is completed */
   cudaError_t err = cudaDeviceSynchronize();
-  if (err != cudaSuccess) {
+  if(err != cudaSuccess) {
     fprintf(stderr, "Run kernel: %s\n", cudaGetErrorString(err));
     exit(1);
   }
   /* copy C from device memory to host memory */
   err = cudaMemcpy(C, devC, M * N * sizeof(float), cudaMemcpyDeviceToHost);
-  if (err != cudaSuccess) {
+  if(err != cudaSuccess) {
     fprintf(stderr, "Copy C off of device: %s\n",cudaGetErrorString(err));
     exit(1);
   }
@@ -119,31 +119,31 @@ hmlSgemmBasic(float       *C,
  */
 void
 hmlSgemm(float       *C,
-      const float *A,
-      const float *B,
-      const int    M,
-      const int    N,
-      const int    K,
-      const float  alpha,
-      const float  beta)
-{
+         const float *A,
+         const float *B,
+         const int    M,
+         const int    N,
+         const int    K,
+         const float  alpha,
+         const float  beta) {
   float *devA, *devB, *devC; /* matrices on CUDA device */
   HmlSgemmKernelConstK constK;
   HmlSgemmKernelVarK   varK;
   HmlKernelArg         karg;
 
   /* initialize SGEMM kernel repository if not yet done */
-  if (!sgemmKernelRepoInitialized)
+  if(!sgemmKernelRepoInitialized) {
     hmlSgemmKernelRepoInit();
+  }
 
   /* perform on-line kernel config if no config has been done */
-  if (!sgemmKernelConfigDone)
+  if(!sgemmKernelConfigDone)
     hmlSgemmKernelConfigOnline(cHmlSgemmConfigTestRows,
-                            cHmlSgemmConfigTestsPerKernel, 0);
+                               cHmlSgemmConfigTestsPerKernel, 0);
 
 #ifdef HML_USE_TEXTURE_MEM
   /* cHmlMaxCudaTexture1DLinear is in terms of elements instead of bytes */
-  if (M * K >= cHmlMaxCudaTexture1DLinear || N * K >= cHmlMaxCudaTexture1DLinear) {
+  if(M * K >= cHmlMaxCudaTexture1DLinear || N * K >= cHmlMaxCudaTexture1DLinear) {
     fprintf(stderr, "CUDA maxTexture1DLinear exceeded\n");
     exit(1);
   }
@@ -166,7 +166,7 @@ hmlSgemm(float       *C,
   /* pick the right kernel to run */
   hmlSgemmKernelSelect(&varK, &constK, &karg, M, N, K);
   /* invoke sGEMM kernal to compute C = alpha x A x B + beta x C */
-  if (constK) {
+  if(constK) {
     constK<<<karg.grid, karg.block>>>(devC,
                                       devA,
                                       devB,
@@ -187,13 +187,13 @@ hmlSgemm(float       *C,
   }
   /* block until computation is completed */
   cudaError_t err = cudaDeviceSynchronize();
-  if (err != cudaSuccess) {
+  if(err != cudaSuccess) {
     fprintf(stderr, "Run kernel: %s\n", cudaGetErrorString(err));
     exit(1);
   }
   /* copy C from device memory to host memory */
   err = cudaMemcpy(C, devC, M * N * sizeof(float), cudaMemcpyDeviceToHost);
-  if (err != cudaSuccess) {
+  if(err != cudaSuccess) {
     fprintf(stderr, "Copy C off of device: %s\n",cudaGetErrorString(err));
     exit(1);
   }
@@ -211,15 +211,16 @@ hmlSgemm(float       *C,
 }
 
 void
-hmlSgemmKernelConfig(char *sgemmKernelConfigFileName)
-{
+hmlSgemmKernelConfig(char *sgemmKernelConfigFileName) {
   /* initialize SGEMM kernel repository if not yet done */
-  if (!sgemmKernelRepoInitialized)
+  if(!sgemmKernelRepoInitialized) {
     hmlSgemmKernelRepoInit();
+  }
 
-  if (sgemmKernelConfigFileName)
+  if(sgemmKernelConfigFileName) {
     hmlSgemmKernelConfigReadFile(sgemmKernelConfigFileName);
+  }
   else
     hmlSgemmKernelConfigOnline(cHmlSgemmConfigTestRows,
-                            cHmlSgemmConfigTestsPerKernel, 0);
+                               cHmlSgemmConfigTestsPerKernel, 0);
 }

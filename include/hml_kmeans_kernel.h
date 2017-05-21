@@ -38,18 +38,18 @@ typedef std::map<int, HmlKmeansKernelOption> HmlKmeansKernelConfigConstDim;
 
 typedef std::vector<HmlKmeansKernelConfigConstDim> HmlKmeansKernelConfig;
 
-typedef void (*HmlKmeansAssignKernel)(uint32_t*        pAsmnts,
-                                   const float *pRows,
-                                   uint32_t         numRows,
-                                   const float *pCtrds,
-                                   uint32_t         numClusts);
+typedef void (*HmlKmeansAssignKernel)(uint32_t        *pAsmnts,
+                                      const float *pRows,
+                                      uint32_t         numRows,
+                                      const float *pCtrds,
+                                      uint32_t         numClusts);
 
 typedef void (*HmlKmeansUpdateKernel)(float       *pCtrds,
-                                   uint32_t        *pSizes,
-                                   uint32_t         numClusts,
-                                   const uint32_t  *pAsmnts,
-                                   const float *pRows,
-                                   uint32_t         numRows);
+                                      uint32_t        *pSizes,
+                                      uint32_t         numClusts,
+                                      const uint32_t  *pAsmnts,
+                                      const float *pRows,
+                                      uint32_t         numRows);
 
 typedef struct {
   /* kernels that do not use texture memory */
@@ -68,12 +68,12 @@ typedef struct {
 
 
 void hmlKmeansReadInputFile(const char  *fileName,
-                         float    **ppData,
-                         uint32_t      *pNumColumns,
-                         uint32_t      *pNumRows);
+                            float    **ppData,
+                            uint32_t      *pNumColumns,
+                            uint32_t      *pNumRows);
 
 void hmlKmeansReadKernelConfigFile(const char *fileName,
-                                HmlKmeansKernelConfig &config);
+                                   HmlKmeansKernelConfig &config);
 
 void hmlKmeansPrintKernelConfig(FILE *file, const HmlKmeansKernelConfig &config);
 
@@ -97,9 +97,9 @@ void kmeansSelectKernel(HmlKmeansAssignKernel       *assignKernel,
  */
 __global__ void
 hmlKmeansFinalUpdate(float *pCtrds,   /* numDims x numClusts x numBlocks */
-                  uint32_t  *pSizes,   /* numClusts x numBlocks */
-                  uint32_t   numDims,
-                  uint32_t   numClusts);
+                     uint32_t  *pSizes,   /* numClusts x numBlocks */
+                     uint32_t   numDims,
+                     uint32_t   numClusts);
 
 /* invariant #1: gridDim.x == numClusts &&
  * invariant #2: blockDim.x == cHmlThreadsPerWarp

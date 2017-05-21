@@ -10,8 +10,7 @@
 
 /* init kernels that do not use texture memory */
 void
-hmlKmeansInitKernelAssignGmem(HmlKmeansAssignKernel *kernel)
-{
+hmlKmeansInitKernelAssignGmem(HmlKmeansAssignKernel *kernel) {
   memset(kernel, 0, sizeof(HmlKmeansAssignKernel) * (cHmlKmeansMaxDims + 1));
   /* The 1D kernel function is disabled so as to avoid the warning:
    * "Advisory: Loop was not unrolled, cannot deduce loop trip count"
@@ -85,8 +84,7 @@ hmlKmeansInitKernelAssignGmem(HmlKmeansAssignKernel *kernel)
 }
 
 void
-hmlKmeansInitKernelAssignSmem(HmlKmeansAssignKernel *kernel)
-{
+hmlKmeansInitKernelAssignSmem(HmlKmeansAssignKernel *kernel) {
   memset(kernel, 0, sizeof(HmlKmeansAssignKernel) * (cHmlKmeansMaxDims + 1));
 
   /* The 1D kernel function is disabled so as to avoid the warning:
@@ -161,8 +159,7 @@ hmlKmeansInitKernelAssignSmem(HmlKmeansAssignKernel *kernel)
 }
 
 void
-hmlKmeansInitKernelAssignSmemUnroll(HmlKmeansAssignKernel *kernel)
-{
+hmlKmeansInitKernelAssignSmemUnroll(HmlKmeansAssignKernel *kernel) {
   memset(kernel, 0, sizeof(HmlKmeansAssignKernel) * (cHmlKmeansMaxDims + 1));
 
   /* The 1D kernel function is disabled so as to avoid the warning:
@@ -237,8 +234,7 @@ hmlKmeansInitKernelAssignSmemUnroll(HmlKmeansAssignKernel *kernel)
 }
 
 void
-hmlKmeansInitKernelUpdateGmem(HmlKmeansUpdateKernel *kernel)
-{
+hmlKmeansInitKernelUpdateGmem(HmlKmeansUpdateKernel *kernel) {
   memset(kernel, 0, sizeof(HmlKmeansUpdateKernel) * (cHmlKmeansMaxDims + 1));
 
   /* The 1D kernel function is disabled so as to avoid the warning:
@@ -313,8 +309,7 @@ hmlKmeansInitKernelUpdateGmem(HmlKmeansUpdateKernel *kernel)
 }
 
 void
-hmlKmeansInitKernelUpdateSmem(HmlKmeansUpdateKernel *kernel)
-{
+hmlKmeansInitKernelUpdateSmem(HmlKmeansUpdateKernel *kernel) {
   memset(kernel, 0, sizeof(HmlKmeansUpdateKernel) * (cHmlKmeansMaxDims + 1));
 
   /* The 1D kernel function is disabled so as to avoid the warning:
@@ -390,8 +385,7 @@ hmlKmeansInitKernelUpdateSmem(HmlKmeansUpdateKernel *kernel)
 
 /* init kernels that use texture memory */
 void
-hmlKmeansInitKernelAssignGmemTex(HmlKmeansAssignKernel *kernel)
-{
+hmlKmeansInitKernelAssignGmemTex(HmlKmeansAssignKernel *kernel) {
   memset(kernel, 0, sizeof(HmlKmeansAssignKernel) * (cHmlKmeansMaxDims + 1));
   /* The 1D kernel function is disabled so as to avoid the warning:
    * "Advisory: Loop was not unrolled, cannot deduce loop trip count"
@@ -465,8 +459,7 @@ hmlKmeansInitKernelAssignGmemTex(HmlKmeansAssignKernel *kernel)
 }
 
 void
-hmlKmeansInitKernelAssignSmemTex(HmlKmeansAssignKernel *kernel)
-{
+hmlKmeansInitKernelAssignSmemTex(HmlKmeansAssignKernel *kernel) {
   memset(kernel, 0, sizeof(HmlKmeansAssignKernel) * (cHmlKmeansMaxDims + 1));
 
   /* The 1D kernel function is disabled so as to avoid the warning:
@@ -541,8 +534,7 @@ hmlKmeansInitKernelAssignSmemTex(HmlKmeansAssignKernel *kernel)
 }
 
 void
-hmlKmeansInitKernelAssignSmemUnrollTex(HmlKmeansAssignKernel *kernel)
-{
+hmlKmeansInitKernelAssignSmemUnrollTex(HmlKmeansAssignKernel *kernel) {
   memset(kernel, 0, sizeof(HmlKmeansAssignKernel) * (cHmlKmeansMaxDims + 1));
 
   /* The 1D kernel function is disabled so as to avoid the warning:
@@ -617,8 +609,7 @@ hmlKmeansInitKernelAssignSmemUnrollTex(HmlKmeansAssignKernel *kernel)
 }
 
 void
-hmlKmeansInitKernelUpdateGmemTex(HmlKmeansUpdateKernel *kernel)
-{
+hmlKmeansInitKernelUpdateGmemTex(HmlKmeansUpdateKernel *kernel) {
   memset(kernel, 0, sizeof(HmlKmeansUpdateKernel) * (cHmlKmeansMaxDims + 1));
 
   /* The 1D kernel function is disabled so as to avoid the warning:
@@ -693,8 +684,7 @@ hmlKmeansInitKernelUpdateGmemTex(HmlKmeansUpdateKernel *kernel)
 }
 
 void
-hmlKmeansInitKernelUpdateSmemTex(HmlKmeansUpdateKernel *kernel)
-{
+hmlKmeansInitKernelUpdateSmemTex(HmlKmeansUpdateKernel *kernel) {
   memset(kernel, 0, sizeof(HmlKmeansUpdateKernel) * (cHmlKmeansMaxDims + 1));
 
   /* The 1D kernel function is disabled so as to avoid the warning:

@@ -43,8 +43,7 @@ hmlTriangleCountPartitionVertexByOutDeg(HmlGraphCore  *core,
                                         uint32_t *minOutDeg,
                                         uint32_t  numPartitions,
                                         uint32_t *vertexRank,
-                                        uint32_t *partitionPrefixSize)
-{
+                                        uint32_t *partitionPrefixSize) {
   uint32_t **partitions;
   uint32_t   p;
   uint32_t   v;
@@ -60,19 +59,19 @@ hmlTriangleCountPartitionVertexByOutDeg(HmlGraphCore  *core,
   MALLOC(partitionPtr, uint32_t *, numPartitions);
   MALLOC(partitionEndPtr, uint32_t *, numPartitions);
   MALLOC(pPartitionAllocSize, uint32_t, numPartitions);
-  for (p = 0; p < numPartitions; ++p) {
+  for(p = 0; p < numPartitions; ++p) {
     MALLOC(partitions[p], uint32_t, cHmlTriangleCountPartitionSizeInit);
     pPartitionAllocSize[p] = cHmlTriangleCountPartitionSizeInit;
     partitionPtr[p] = partitions[p];
     partitionEndPtr[p] = partitions[p] + cHmlTriangleCountPartitionSizeInit;
   }
-  for (v = core->minSrcVertex; v <= core->maxSrcVertex; ++v) {
+  for(v = core->minSrcVertex; v <= core->maxSrcVertex; ++v) {
     outDeg = R[v + 1] - R[v]; /* each page takes one 32-bit word */
     /* use linear scan to find which partition this vertex belongs to */
-    for (p = 0; p < numPartitions && minOutDeg[p] <= outDeg; ++p);
-    if (p > 0) {
+    for(p = 0; p < numPartitions && minOutDeg[p] <= outDeg; ++p);
+    if(p > 0) {
       --p;
-      if (partitionPtr[p] == partitionEndPtr[p]) {
+      if(partitionPtr[p] == partitionEndPtr[p]) {
         REALLOC(partitions[p], uint32_t, pPartitionAllocSize[p] * 2);
         partitionPtr[p] = partitions[p] + pPartitionAllocSize[p];
         pPartitionAllocSize[p] *= 2;
@@ -81,20 +80,20 @@ hmlTriangleCountPartitionVertexByOutDeg(HmlGraphCore  *core,
       *partitionPtr[p]++ = v;
     }
   }
-  for (p = 0; p < numPartitions; ++p) {
+  for(p = 0; p < numPartitions; ++p) {
     prefixSize += partitionPtr[p] - partitions[p];
     partitionPrefixSize[p] = prefixSize;
-    if (prefixSize > numSrcVertices) {
+    if(prefixSize > numSrcVertices) {
       fprintf(stderr, "; Error: prefixSize = %d > numSrcVertices = %d\n",
               prefixSize, numSrcVertices);
       exit(EXIT_FAILURE);
     }
-    memcpy((void*)vertexRank, partitions[p],
+    memcpy((void *)vertexRank, partitions[p],
            sizeof(uint32_t) * (partitionPtr[p] - partitions[p]));
     vertexRank += partitionPtr[p] - partitions[p];
   }
   /* free memory */
-  for (p = 0; p < numPartitions; ++p) {
+  for(p = 0; p < numPartitions; ++p) {
     FREE(partitions[p]);
     FREE(partitionPtr);
     FREE(partitionEndPtr);
@@ -104,8 +103,7 @@ hmlTriangleCountPartitionVertexByOutDeg(HmlGraphCore  *core,
 }
 
 static HmlErrCode
-hmlTriangleCountCopyToGpu(HmlTriangleCountBase *cpu, HmlTriangleCountBase *gpu)
-{
+hmlTriangleCountCopyToGpu(HmlTriangleCountBase *cpu, HmlTriangleCountBase *gpu) {
   HML_ERR_PROLOGUE;
 
   /* shallow copy of HmlTriangleCount object from "cpu" to "gpu" */
@@ -138,7 +136,7 @@ hmlTriangleCountGpuInit(HmlTriangleCount *triangleCount) {
   double   cpuEnd, wallEnd;
 
   /* get free gpu memory size */
-  if (triangleCount->verbosity >= 2) {
+  if(triangleCount->verbosity >= 2) {
     HANDLE_ERROR(cudaMemGetInfo(&freeBytes, &totalBytes));
     fprintf(stderr, "; Info: GPU memory: %ld bytes free, %ld bytes total\n",
             freeBytes, totalBytes);
@@ -148,11 +146,11 @@ hmlTriangleCountGpuInit(HmlTriangleCount *triangleCount) {
   hmlTriangleCountCopyToGpu(&triangleCount->cpu, &triangleCount->gpu);
   cudaDeviceSynchronize();
   hmlGetSecs(&cpuEnd, &wallEnd);
-  if (triangleCount->verbosity >= 2) {
+  if(triangleCount->verbosity >= 2) {
     fprintf(stderr, "; Info: Load graph to device: wall time = %.2lf\n",
             (wallEnd - wallStart) * 1000);
   }
-  if (numVertices > cHmlMaxCudaTexture1DLinear) {
+  if(numVertices > cHmlMaxCudaTexture1DLinear) {
     hmlPrintf("; Error: Number of vertices exceeds the maximum "
               "texture 1D size\n");
     HML_ERR_GEN(true, cHmlErrGeneral);
@@ -167,8 +165,8 @@ hmlTriangleCountGpuInit(HmlTriangleCount *triangleCount) {
   /* allocate vertexRank[] on CPU */
   MALLOC(vertexRank, uint32_t, numSrcVertices);
   hmlTriangleCountPartitionVertexByOutDeg(&triangleCount->cpu.core, minOutDeg,
-                                     triangleCount->numPartitions,
-                                     vertexRank, partitionPrefixSize);
+                                          triangleCount->numPartitions,
+                                          vertexRank, partitionPrefixSize);
   //hmlGetSecs(&cpuEnd, &wallEnd);
   //fprintf(stderr, "; Info: Partition vertices on CPU: "
   //      "cpu time = %.2lf, wall time = %.2lf\n",
@@ -187,7 +185,7 @@ hmlTriangleCountGpuInit(HmlTriangleCount *triangleCount) {
                           cudaMemcpyHostToDevice));
   cudaDeviceSynchronize();
   hmlGetSecs(&cpuEnd, &wallEnd);
-  if (triangleCount->verbosity >= 2) {
+  if(triangleCount->verbosity >= 2) {
     fprintf(stderr, "; Info: Partition and copy vertice ranks to device: "
             "wall time = %.2lf\n", (wallEnd - wallStart) * 1000);
     fprintf(stderr, "; Info: Number of pages with in-coming link: %d (%.2lf%%)\n",
@@ -197,19 +195,20 @@ hmlTriangleCountGpuInit(HmlTriangleCount *triangleCount) {
             sizeof(uint32_t) / (double)(1024 * 1024));
   }
   /* print vertex ranks for small graphs */
-  if (triangleCount->verbosity >= 3 && vertexRankSize <= 100) {
-    for (uint32_t r = 0; r < vertexRankSize; ++r) {
+  if(triangleCount->verbosity >= 3 && vertexRankSize <= 100) {
+    for(uint32_t r = 0; r < vertexRankSize; ++r) {
       fprintf(stderr, "; Info: rank %3d = vertex %3d\n", r, vertexRank[r]);
     }
   }
 
   /* set the kernel arguments */
   hmlTriangleCountKernelArgSet(triangleCount->kernelArgs, triangleCount->numPartitions,
-                          minOutDeg, partitionPrefixSize);
+                               minOutDeg, partitionPrefixSize);
 
   /* print kernel params */
-  if (triangleCount->verbosity >= 2)
+  if(triangleCount->verbosity >= 2) {
     hmlTriangleCountKernelArgPrint(triangleCount->kernelArgs, triangleCount->numPartitions);
+  }
 
   HANDLE_ERROR(cudaMalloc(&triangleCount->gpuCountArr,
                           sizeof(uint32_t) * (maxSrcVertex + 1)));
@@ -242,17 +241,17 @@ hmlTriangleCountGpu(HmlTriangleCount *triangleCount) {
   MALLOC(countArr, uint32_t, maxSrcVertex + 1);
   hmlGetSecs(&cpuStart, &wallStart);
   //fprintf(stderr, "; Info: iter = %d\n", iter);
-  for (uint32_t p = 0; p < numPartitions; ++p) {
+  for(uint32_t p = 0; p < numPartitions; ++p) {
     kernel[kernelArgs[p].id]<<<kernelArgs[p].grid, kernelArgs[p].block>>>
-      (gpuCountArr, gpuCore->R, gpuCore->E, maxSrcVertex, gpuVertexRank,
-       kernelArgs[p].minVertexRank, kernelArgs[p].maxVertexRank);
+    (gpuCountArr, gpuCore->R, gpuCore->E, maxSrcVertex, gpuVertexRank,
+     kernelArgs[p].minVertexRank, kernelArgs[p].maxVertexRank);
   }
   hmlTriangleCountSumKernel<<<cHmlTriangleCountSumBlocks,
-      cHmlTriangleCountSumThreadsPerBlock>>>
-      (gpuBlockCountArr, gpuCountArr, maxSrcVertex);
+                            cHmlTriangleCountSumThreadsPerBlock>>>
+                            (gpuBlockCountArr, gpuCountArr, maxSrcVertex);
   cudaDeviceSynchronize();
   hmlGetSecs(&cpuEnd, &wallEnd);
-  if (triangleCount->verbosity >= 1) {
+  if(triangleCount->verbosity >= 1) {
     fprintf(stderr, "; Info: GPU TriangleCount: wall time = %.2lf\n",
             (wallEnd - wallStart) * 1000);
   }
@@ -261,7 +260,7 @@ hmlTriangleCountGpu(HmlTriangleCount *triangleCount) {
                           sizeof(uint64_t) * cHmlTriangleCountSumBlocks,
                           cudaMemcpyDeviceToHost));
   triangleCount->gpu.numTriangles = 0;
-  for (blk = 0; blk < cHmlTriangleCountSumBlocks; blk++) {
+  for(blk = 0; blk < cHmlTriangleCountSumBlocks; blk++) {
     triangleCount->gpu.numTriangles += triangleCount->blockCountArr[blk];
   }
   /*
@@ -330,7 +329,7 @@ hmlTriangleCountDelete(HmlTriangleCount *triangleCount) {
   /* free GPU stuff */
   HANDLE_ERROR(cudaFree(triangleCount->gpuCountArr));
   HANDLE_ERROR(cudaFree(triangleCount->gpuBlockCountArr));
-  if (triangleCount->gpu.core.numEdges > 0) {
+  if(triangleCount->gpu.core.numEdges > 0) {
     hmlGraphCoreGpuDelete(&triangleCount->gpu.core);
   }
   HANDLE_ERROR(cudaFree(triangleCount->gpuVertexRank));
@@ -349,7 +348,7 @@ hmlTriangleCountGraphAppender(HmlGraphCore  *core,
   HmlGraphCoreAppendState *appState = (HmlGraphCoreAppendState *)appendState;
 
   if(srcVertex < destVertex) {
-      HML_ERR_PASS(hmlGraphCoreAppend(core, appState, srcVertex, destVertex));
+    HML_ERR_PASS(hmlGraphCoreAppend(core, appState, srcVertex, destVertex));
   }
 
   HML_NORMAL_RETURN;
@@ -373,8 +372,8 @@ hmlTriangleCountReadOrderedTsv2File(HmlTriangleCountBase *count,
 
 HmlErrCode
 hmlTriangleCountReadOrderedTsv2FileByName(HmlTriangleCountBase *count,
-                                          char const *fileName,
-                                          bool srcVertexOnRightColumn) {
+    char const *fileName,
+    bool srcVertexOnRightColumn) {
   HML_ERR_PROLOGUE;
   FILE *file;
 
@@ -396,10 +395,10 @@ hmlTriangleCountGraphInserter(HmlGraphCore  *core,
     = (HmlTriangleCountGraphInsertState *)insertState;
   uint32_t tmpVertex;
 
-  if (srcVertex != destVertex) {
+  if(srcVertex != destVertex) {
     srcVertex = state->P[srcVertex];
     destVertex = state->P[destVertex];
-    if (srcVertex > destVertex) {
+    if(srcVertex > destVertex) {
       tmpVertex = srcVertex;
       srcVertex = destVertex;
       destVertex = tmpVertex;
@@ -456,7 +455,7 @@ hmlTriangleCountReorderEdges(HmlTriangleCountBase *count) {
   /* create vertex permutation array: count->P */
   HML_ERR_GEN(count->P, cHmlErrGeneral);
   MALLOC(count->P, uint32_t, numVertices);
-  for (v = 0; v < numVertices; v++) {
+  for(v = 0; v < numVertices; v++) {
     count->P[v] = v;
   }
   HML_QSORT(count->P, numVertices, sizeof(uint32_t),
@@ -482,11 +481,12 @@ hmlTriangleCountReorderEdges(HmlTriangleCountBase *count) {
                                          hmlTriangleCountGraphInserter,
                                          NULL,
                                          &insertState));
-  if (count->numThreads > 1 &&
+  if(count->numThreads > 1 &&
       count->numThreads != count->partition.numPartitions) {
     HML_ERR_PASS(hmlTriangleCountSetPartition(count));
     HML_ERR_PASS(hmlGraphCoreSortEdgesByPartition(core, &count->partition));
-  } else {
+  }
+  else {
     HML_ERR_PASS(hmlGraphCoreSortEdges(core, 1));
   }
   /* free R and E in the old 'core' now that the new one has been created */
@@ -542,7 +542,8 @@ hmlTriangleCountBySearch(HmlGraphCore     *core,
               numTriangles++;
             }
           }
-        } else { /* use binary search */
+        }
+        else {   /* use binary search */
           for(eU2 = eU + 1; eU2 <= endU; eU2++) {
             w = *eU2;
             highV = (uint32_t)(endV - eV);
@@ -556,7 +557,8 @@ hmlTriangleCountBySearch(HmlGraphCore     *core,
               if(*eV == w) {
                 numTriangles++;
               }
-            } else {
+            }
+            else {
               lowV = 0;
               while(lowV <= highV) {
                 /* to avoid overflow in (lowV + highV) / 2 */
@@ -565,9 +567,11 @@ hmlTriangleCountBySearch(HmlGraphCore     *core,
                   lowV = midV + 1;
                   numTriangles++;
                   break;
-                } else if(eV[midV] < w) {
+                }
+                else if(eV[midV] < w) {
                   lowV = midV + 1;
-                } else {
+                }
+                else {
                   highV = midV - 1;
                 }
               }
@@ -644,17 +648,18 @@ hmlTriangleCountRun(HmlTriangleCountBase            *count) {
   HmlGraphCoreParaFunc func = (count->countByHash) ? hmlTriangleCountByHash :
                               hmlTriangleCountBySearch;
 
-  if (count->numThreads > 1) {
-    if (count->numThreads != count->partition.numPartitions) {
+  if(count->numThreads > 1) {
+    if(count->numThreads != count->partition.numPartitions) {
       HML_ERR_PASS(hmlTriangleCountSetPartition(count));
     }
     HML_ERR_PASS(hmlGraphCoreRunParaFuncByPartition(core, func, count,
                  &count->partition));
     count->numTriangles = 0;
-    for (thread = 0; thread < count->numThreads; thread++) {
+    for(thread = 0; thread < count->numThreads; thread++) {
       count->numTriangles += count->numTrianglesEachThread[thread];
     }
-  } else {
+  }
+  else {
     count->numTrianglesEachThread = &count->numTriangles;
     HML_ERR_PASS(func(&count->core, 0,
                       count->core.minSrcVertex,

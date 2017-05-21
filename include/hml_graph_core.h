@@ -12,15 +12,15 @@
 #define cHmlGraphCoreInvalidVertex   ((uint32_t)-1)
 
 typedef struct {
-    uint32_t     *R;
-    uint64_t      sizeofR;
-    uint32_t     *E;
-    uint64_t      sizeofE;
-    uint64_t      numEdges;
-    uint32_t      minSrcVertex;
-    uint32_t      maxSrcVertex;
-    uint32_t      minDestVertex;
-    uint32_t      maxDestVertex;
+  uint32_t     *R;
+  uint64_t      sizeofR;
+  uint32_t     *E;
+  uint64_t      sizeofE;
+  uint64_t      numEdges;
+  uint32_t      minSrcVertex;
+  uint32_t      maxSrcVertex;
+  uint32_t      minDestVertex;
+  uint32_t      maxDestVertex;
 } HmlGraph;
 
 typedef struct {
@@ -66,35 +66,35 @@ typedef struct {
 } HmlGraphCoreAppendState;
 
 typedef enum {
-    eAppendRegularEdge,
-    eAppendEndofGraphEdge
+  eAppendRegularEdge,
+  eAppendEndofGraphEdge
 } HmlGraphAppendEdgeCmd;
 
 typedef struct {
-    HmlGraphAppendEdgeCmd  cmd;
-    uint32_t        *R;
-    uint32_t        *E;
-    uint64_t         numEdges;
-    uint64_t         sizeofR;
-    uint64_t         allocSizeofR;
-    uint64_t         sizeofE;
-    uint64_t         allocSizeofE;
-    uint32_t        *r;
-    uint32_t        *endofR;
-    uint32_t        *e;
-    uint32_t        *endofE;
-    uint32_t         prevSrcVertex;
-    uint32_t         minSrcVertex;
-    uint32_t         maxSrcVertex;
-    uint32_t         minDestVertex;
-    uint32_t         maxDestVertex;
+  HmlGraphAppendEdgeCmd  cmd;
+  uint32_t        *R;
+  uint32_t        *E;
+  uint64_t         numEdges;
+  uint64_t         sizeofR;
+  uint64_t         allocSizeofR;
+  uint64_t         sizeofE;
+  uint64_t         allocSizeofE;
+  uint32_t        *r;
+  uint32_t        *endofR;
+  uint32_t        *e;
+  uint32_t        *endofE;
+  uint32_t         prevSrcVertex;
+  uint32_t         minSrcVertex;
+  uint32_t         maxSrcVertex;
+  uint32_t         minDestVertex;
+  uint32_t         maxDestVertex;
 } HmlGraphAppendEdgeState;
 
 typedef HmlErrCode(*HmlGraphCoreParaFunc)(HmlGraphCore *core,
-                                          uint32_t        thread,
-                                          uint32_t        minVertex,
-                                          uint32_t        maxVertex,
-                                          void         *args);
+    uint32_t        thread,
+    uint32_t        minVertex,
+    uint32_t        maxVertex,
+    void         *args);
 
 typedef struct {
   HmlGraphCore          *core;
@@ -109,31 +109,31 @@ typedef HmlErrCode(*HmlGraphCoreFunc)(HmlGraphCore *core,
                                       uint32_t destVertex);
 
 typedef HmlErrCode(*HmlGraphCoreConstFunc)(HmlGraphCore const *core,
-                                           void  *args,
-                                           uint32_t srcVertex,
-                                           uint32_t destVertex);
+    void  *args,
+    uint32_t srcVertex,
+    uint32_t destVertex);
 
 typedef HmlErrCode(*HmlGraphCoreAppendIniter)(HmlGraphCore *core,
-                                              void         *appendState);
+    void         *appendState);
 
 typedef HmlErrCode(*HmlGraphCoreAppender)(HmlGraphCore *core,
-                                          void         *appendState,
-                                          uint32_t        srcVertex,
-                                          uint32_t        destVertex);
+    void         *appendState,
+    uint32_t        srcVertex,
+    uint32_t        destVertex);
 
 typedef HmlErrCode(*HmlGraphCoreAppendFinalizer)(HmlGraphCore *core,
-                                                 void         *appendState);
+    void         *appendState);
 
 typedef HmlErrCode(*HmlGraphCoreInsertIniter)(HmlGraphCore *core,
-                                              void         *insertState);
+    void         *insertState);
 
 typedef HmlErrCode(*HmlGraphCoreInserter)(HmlGraphCore *core,
-                                          void         *insertState,
-                                          uint32_t        srcVertex,
-                                          uint32_t        destVertex);
+    void         *insertState,
+    uint32_t        srcVertex,
+    uint32_t        destVertex);
 
 typedef HmlErrCode(*HmlGraphCoreInsertFinalizer)(HmlGraphCore *core,
-                                                 void         *insertState);
+    void         *insertState);
 
 /* make prototypes usable from C++ */
 #ifdef __cplusplus
@@ -229,28 +229,28 @@ hmlGraphCoreCountBidirectDegree(HmlGraphCore const *core,
                                 uint32_t             *D,
                                 uint32_t              numVertices);
 
- HmlErrCode
- hmlGraphCoreCountDegreeIfSmallerP(HmlGraphCore const *core,
-                                   uint32_t const       *P,
-                                   uint32_t             *D,
-                                   uint32_t              numVertices);
+HmlErrCode
+hmlGraphCoreCountDegreeIfSmallerP(HmlGraphCore const *core,
+                                  uint32_t const       *P,
+                                  uint32_t             *D,
+                                  uint32_t              numVertices);
 
- HmlErrCode
- hmlGraphCoreDefaultInsertIniter(HmlGraphCore *core, void *insertState);
+HmlErrCode
+hmlGraphCoreDefaultInsertIniter(HmlGraphCore *core, void *insertState);
 
- HmlErrCode
- hmlGraphCoreDefaultInserter(HmlGraphCore *core,
-                             void         *insertState,
-                             uint32_t        srcVertex,
-                             uint32_t        destVertex);
+HmlErrCode
+hmlGraphCoreDefaultInserter(HmlGraphCore *core,
+                            void         *insertState,
+                            uint32_t        srcVertex,
+                            uint32_t        destVertex);
 
- HmlErrCode
- hmlGraphCoreInsertFromSrc(HmlGraphCore               *core,
-                           HmlGraphCore const         *src,
-                           HmlGraphCoreInsertIniter    initer,
-                           HmlGraphCoreInserter        inserter,
-                           HmlGraphCoreInsertFinalizer finalizer,
-                           void                       *insertState);
+HmlErrCode
+hmlGraphCoreInsertFromSrc(HmlGraphCore               *core,
+                          HmlGraphCore const         *src,
+                          HmlGraphCoreInsertIniter    initer,
+                          HmlGraphCoreInserter        inserter,
+                          HmlGraphCoreInsertFinalizer finalizer,
+                          void                       *insertState);
 
 HmlErrCode
 hmlGraphCoreSortEdges(HmlGraphCore *core, uint32_t numThreads);

@@ -12,10 +12,9 @@
 
 void
 hmlKmeansReadInputFile(const char  *fileName,
-                    float    **ppData,
-                    uint32_t      *pNumColumns,
-                    uint32_t      *pNumRows)
-{
+                       float    **ppData,
+                       uint32_t      *pNumColumns,
+                       uint32_t      *pNumRows) {
   FILE       *file;
   float    *pData;
   char       *pChar;
@@ -32,70 +31,75 @@ hmlKmeansReadInputFile(const char  *fileName,
   uint32_t      column;
   uint32_t      numColumns = (uint32_t)-1;
   uint32_t      numRows = 0;
-  
+
   file = fopen(fileName, "rb");
-  if (!file) {
+  if(!file) {
     fprintf(stderr, "Cannot open file: %s\n", fileName);
-    exit( EXIT_FAILURE );
+    exit(EXIT_FAILURE);
   }
   MALLOC(pData, float, cHmlKmeansInitDataSize);
   pCurData = pData;
   allocSizeofData = cHmlKmeansInitDataSize;
   pEndData = &pData[allocSizeofData];
-  while (true) {
+  while(true) {
     pChar = fgets(line, cHmlLineBufferSize, file);
-    if (!pChar)
+    if(!pChar) {
       break;
+    }
     column = 0;
-    while (*pChar != '\n') {
+    while(*pChar != '\n') {
       /* eat while spaces */
-      while (*pChar == ' ' || *pChar == '\t') ++pChar;
-      if (*pChar >= '0' && *pChar <= '9')
+      while(*pChar == ' ' || *pChar == '\t') {
+        ++pChar;
+      }
+      if(*pChar >= '0' && *pChar <= '9') {
         positive = true;
-      else if (*pChar == '-') {
+      }
+      else if(*pChar == '-') {
         positive = false;
         ++pChar;
       }
-      else if (*pChar == '+') {
+      else if(*pChar == '+') {
         positive = true;
         ++pChar;
       }
       else {
         fprintf(stderr, "Err: invalid input line #%d: %s\n", numRows, line);
-        exit(EXIT_FAILURE);    
+        exit(EXIT_FAILURE);
       }
       intVal = 0;
-      while ((charInt = (uint32_t)*pChar++) >= '0' && charInt <= '9') {
+      while((charInt = (uint32_t)*pChar++) >= '0' && charInt <= '9') {
         intVal = intVal * 10 + charInt - '0';
-        if (intVal < 0) {
+        if(intVal < 0) {
           fprintf(stderr,
                   "Err: data at row %d column %d exceeds precision limits\n",
                   numRows + 1, column + 1);
           exit(EXIT_FAILURE);
         }
       }
-      if (charInt == '.') {
+      if(charInt == '.') {
         numVal = 0;
         denomVal = 1;
-        while ((charInt = (uint32_t)*pChar++) >= '0' && charInt <= '9') {
-          if (denomVal >= cHmlKmeansMaxDenomValInt32) {
+        while((charInt = (uint32_t)*pChar++) >= '0' && charInt <= '9') {
+          if(denomVal >= cHmlKmeansMaxDenomValInt32) {
             fprintf(stderr,
                     "Err: data at row %d column %d exceeds precision limits:\n",
                     numRows + 1, column + 1);
             fprintf(stderr, "     numerator = %d..., denominator = %d...\n",
-                    numVal, denomVal);              
+                    numVal, denomVal);
             exit(EXIT_FAILURE);
           }
           numVal = numVal * 10 + charInt - '0';
           denomVal *= 10;
         }
         cellVal = (positive)? (float)numVal / (float)denomVal :
-          -(float)numVal / (float)denomVal;
+                  -(float)numVal / (float)denomVal;
       }
-      else
+      else {
         cellVal = 0.0;
+      }
       cellVal += (positive? (float)intVal : -(float)intVal);
-      if (pCurData >= pEndData) {
+      if(pCurData >= pEndData) {
         REALLOC(pData, float, allocSizeofData * 2);
         pCurData = &pData[allocSizeofData];
         allocSizeofData *= 2;
@@ -103,12 +107,15 @@ hmlKmeansReadInputFile(const char  *fileName,
       }
       *pCurData++ = cellVal;
       ++column;
-      if (charInt == '\n') break;
+      if(charInt == '\n') {
+        break;
+      }
     }
     ++numRows;
-    if (numColumns == (uint32_t)-1)
+    if(numColumns == (uint32_t)-1) {
       numColumns = column;
-    if (column != numColumns) {
+    }
+    if(column != numColumns) {
       fprintf(stderr,
               "Err: row %d has %d columns, while the previous row has %d\n",
               numRows, column, numColumns);
@@ -116,12 +123,12 @@ hmlKmeansReadInputFile(const char  *fileName,
     }
   }
   fclose(file);
-  if (column > 0 && column != numColumns) {
+  if(column > 0 && column != numColumns) {
     fprintf(stderr,
             "Err: row %d has %d columns, while the previous row has %d\n",
             numRows, column, numColumns);
     exit(EXIT_FAILURE);
-  }  
+  }
   REALLOC(pData, float, numColumns * numRows);
   *ppData = pData;
   *pNumColumns = numColumns;

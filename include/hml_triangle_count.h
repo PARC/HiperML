@@ -12,14 +12,14 @@
 #include "hml_triangle_count_kernel.h"
 
 typedef struct {
-    HmlGraphCore       core;
-    HmlVertexPartition partition;
-    uint32_t          *D;  /* bi-directional degree of vertices */
-    uint32_t          *P;  /* vertex permutation array */
-    bool               countByHash;
-    uint32_t           numThreads;
-    uint64_t           numTriangles;
-    uint64_t          *numTrianglesEachThread;
+  HmlGraphCore       core;
+  HmlVertexPartition partition;
+  uint32_t          *D;  /* bi-directional degree of vertices */
+  uint32_t          *P;  /* vertex permutation array */
+  bool               countByHash;
+  uint32_t           numThreads;
+  uint64_t           numTriangles;
+  uint64_t          *numTrianglesEachThread;
 } HmlTriangleCountBase;
 
 typedef struct {
@@ -46,8 +46,8 @@ hmlTriangleCountDelete(HmlTriangleCount *triangleCount);
 
 HmlErrCode
 hmlTriangleCountSetInputFiles(HmlTriangleCount *triangleCount,
-                         FILE        *graphFile,
-                         FILE        *inOutDegreeFile);
+                              FILE        *graphFile,
+                              FILE        *inOutDegreeFile);
 
 HmlErrCode
 hmlTriangleCountReadTsv2InFile(HmlTriangleCount *triangleCount);
@@ -59,8 +59,8 @@ hmlTriangleCountReadOrderedTsv2File(HmlTriangleCountBase *count,
 
 HmlErrCode
 hmlTriangleCountReadOrderedTsv2FileByName(HmlTriangleCountBase *count,
-                                          char const *fileName,
-                                          bool srcVertexOnRightColumn);
+    char const *fileName,
+    bool srcVertexOnRightColumn);
 
 HmlErrCode
 hmlTriangleCountGpuInit(HmlTriangleCount *triangleCount);

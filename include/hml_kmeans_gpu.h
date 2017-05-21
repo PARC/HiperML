@@ -18,18 +18,18 @@ extern "C" {
  */
 void
 hmlKmeansGpu(float                  *pCtrds,         /* numDims x numClusts */
-          uint32_t                   *pSizes,         /* numClusts */
-          uint32_t                   *pAsmnts,        /* numRows */
-          float                  *pFinalResidual, /* return final residual */
-          const float            *pRows,          /* numDims x numRows */
-          uint32_t                    numDims,
-          uint32_t                    numRows,
-          uint32_t                    numClusts,
-          uint32_t                    numIters,
-          float                   stopResidual,   /* termination residual */
-          const HmlKmeansKernelRepo   *repo,
-          const HmlKmeansKernelConfig &config,
-          uint32_t                    verbosity);
+             uint32_t                   *pSizes,         /* numClusts */
+             uint32_t                   *pAsmnts,        /* numRows */
+             float                  *pFinalResidual, /* return final residual */
+             const float            *pRows,          /* numDims x numRows */
+             uint32_t                    numDims,
+             uint32_t                    numRows,
+             uint32_t                    numClusts,
+             uint32_t                    numIters,
+             float                   stopResidual,   /* termination residual */
+             const HmlKmeansKernelRepo   *repo,
+             const HmlKmeansKernelConfig &config,
+             uint32_t                    verbosity);
 
 #ifdef __cplusplus
 }

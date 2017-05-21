@@ -31,7 +31,9 @@ hmlVsnprintf(char *str, size_t count, char const *format, va_list args) {
   /* Linux always put the null-terminator in the end, but it may return
    * a value greater than count, if the actual string is longer than 'str'
    */
-  if(len > (int32_t)count) len = (int32_t)count;
+  if(len > (int32_t)count) {
+    len = (int32_t)count;
+  }
   return len;
 }
 

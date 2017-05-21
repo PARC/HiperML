@@ -23,8 +23,7 @@ hmlTriangleCountKernel0(uint32_t        *countArr,   /* output count */
                         const uint32_t   maxSrcVertex,
                         const uint32_t  *vertexRank,
                         const uint32_t   minVertexRank, /* inclusive */
-                        const uint32_t   maxVertexRank) /* exclusive */
-{
+                        const uint32_t   maxVertexRank) { /* exclusive */
   const int     x    = threadIdx.x + blockIdx.x * blockDim.x;
   const int     y    = threadIdx.y + blockIdx.y * blockDim.y;
   const uint32_t  rank = x + y * blockDim.x * gridDim.x + minVertexRank;
@@ -38,7 +37,7 @@ hmlTriangleCountKernel0(uint32_t        *countArr,   /* output count */
   uint32_t  w;
   uint32_t  numTriangles = 0;
 
-  if (rank < maxVertexRank) {
+  if(rank < maxVertexRank) {
     u = vertexRank[rank];
     endU = &E[R[u + 1]] - 1;
     for(eU = &E[R[u]]; eU < endU; eU++) {
@@ -78,8 +77,7 @@ hmlTriangleCountKernel1(uint32_t        *countArr,   /* output count */
                         const uint32_t   maxSrcVertex,
                         const uint32_t  *vertexRank,
                         const uint32_t   minVertexRank, /* inclusive */
-                        const uint32_t   maxVertexRank) /* exclusive */
-{
+                        const uint32_t   maxVertexRank) { /* exclusive */
   const uint32_t  rank = blockIdx.x + blockIdx.y * gridDim.x + minVertexRank;
   const uint32_t  tid  = threadIdx.x;
   const uint32_t *eU;
@@ -93,7 +91,7 @@ hmlTriangleCountKernel1(uint32_t        *countArr,   /* output count */
   uint32_t  numTriangles = 0;
   __shared__ uint32_t numTrianglesArr[cHmlThreadsPerWarp];
 
-  if (rank < maxVertexRank) {
+  if(rank < maxVertexRank) {
     u = vertexRank[rank];
     endU = &E[R[u + 1]] - 1;
     for(eU = &E[R[u]] + tid; eU < endU; eU += cHmlThreadsPerWarp) {
@@ -119,13 +117,15 @@ hmlTriangleCountKernel1(uint32_t        *countArr,   /* output count */
   }
   numTrianglesArr[tid] = numTriangles;
   //__syncthreads();
-  for (int numReducers = blockDim.x / 2; numReducers > 0; numReducers /= 2) {
-    if (tid < numReducers)
+  for(int numReducers = blockDim.x / 2; numReducers > 0; numReducers /= 2) {
+    if(tid < numReducers) {
       numTrianglesArr[tid] += numTrianglesArr[tid + numReducers];
+    }
     //__syncthreads();
   }
-  if (tid == 0 && rank < maxVertexRank)
-      countArr[u] = numTrianglesArr[0];
+  if(tid == 0 && rank < maxVertexRank) {
+    countArr[u] = numTrianglesArr[0];
+  }
 }
 
 
@@ -141,8 +141,7 @@ hmlTriangleCountKernel2(uint32_t        *countArr,   /* output count */
                         const uint32_t   maxSrcVertex,
                         const uint32_t  *vertexRank,
                         const uint32_t   minVertexRank, /* inclusive */
-                        const uint32_t   maxVertexRank) /* exclusive */
-{
+                        const uint32_t   maxVertexRank) { /* exclusive */
   const uint32_t   rank = blockIdx.x + blockIdx.y * gridDim.x + minVertexRank;
   const uint32_t   tid  = threadIdx.x;
   const uint32_t *eU;
@@ -159,7 +158,7 @@ hmlTriangleCountKernel2(uint32_t        *countArr,   /* output count */
   uint32_t  numTriangles = 0;
   __shared__ uint32_t numTrianglesArr[cHmlTriangleCountThreadsPerBlock];
 
-  if (rank < maxVertexRank) {
+  if(rank < maxVertexRank) {
     u = vertexRank[rank];
     endU = &E[R[u + 1]] - 1;
     for(eU = &E[R[u]] + tid; eU < endU; eU += cHmlTriangleCountThreadsPerBlock) {
@@ -226,13 +225,15 @@ hmlTriangleCountKernel2(uint32_t        *countArr,   /* output count */
   }
   numTrianglesArr[tid] = numTriangles;
   __syncthreads();
-  for (int numReducers = blockDim.x / 2; numReducers > 0; numReducers /= 2) {
-    if (tid < numReducers)
+  for(int numReducers = blockDim.x / 2; numReducers > 0; numReducers /= 2) {
+    if(tid < numReducers) {
       numTrianglesArr[tid] += numTrianglesArr[tid + numReducers];
+    }
     __syncthreads();
   }
-  if (tid == 0 && rank < maxVertexRank)
+  if(tid == 0 && rank < maxVertexRank) {
     countArr[u] = numTrianglesArr[0];
+  }
 }
 
 /* blockDim.x = cHmlTriangleCountSumThreadsPerBlock, .y = .z = 1
@@ -247,33 +248,34 @@ hmlTriangleCountSumKernel(uint64_t        *blockCountArr,   /* output count */
   int cacheIdx = threadIdx.x;
   uint64_t numTriangles = 0;
 
-  while (tid <= maxSrcVertex) {
+  while(tid <= maxSrcVertex) {
     numTriangles += countArr[tid];
     tid += blockDim.x * gridDim.x;
   }
   cache[cacheIdx] = numTriangles;
   __syncthreads();
-  for (int numReducers = blockDim.x / 2; numReducers > 0; numReducers /= 2) {
-    if (cacheIdx < numReducers)
+  for(int numReducers = blockDim.x / 2; numReducers > 0; numReducers /= 2) {
+    if(cacheIdx < numReducers) {
       cache[cacheIdx] += cache[cacheIdx + numReducers];
+    }
     __syncthreads();
   }
-  if (cacheIdx == 0)
+  if(cacheIdx == 0) {
     blockCountArr[blockIdx.x] = cache[0];
+  }
 }
 
 void
-hmlTriangleCountKernelArgPrint(HmlTriangleCountKernelArg *kernelArgs, uint32_t numPartitions)
-{
-  for (uint32_t i = 0; i < numPartitions; ++i) {
+hmlTriangleCountKernelArgPrint(HmlTriangleCountKernelArg *kernelArgs, uint32_t numPartitions) {
+  for(uint32_t i = 0; i < numPartitions; ++i) {
     fprintf(stderr, "; Info: Kernel arg #%d:\n", i);
     fprintf(stderr, "; Info:     id            = %d\n", kernelArgs[i].id);
     fprintf(stderr, "; Info:     minDeg        = %d\n", kernelArgs[i].minDeg);
     fprintf(stderr, "; Info:     maxDeg        = %d\n", kernelArgs[i].maxDeg);
     fprintf(stderr, "; Info:     minVertexRank = %d\n",
-      kernelArgs[i].minVertexRank);
+            kernelArgs[i].minVertexRank);
     fprintf(stderr, "; Info:     maxVertexRank = %d\n",
-      kernelArgs[i].maxVertexRank);
+            kernelArgs[i].maxVertexRank);
     fprintf(stderr, "; Info:     # of vertices = %d\n",
             kernelArgs[i].maxVertexRank - kernelArgs[i].minVertexRank + 1);
   }
@@ -289,23 +291,23 @@ void
 hmlTriangleCountGridDimCalc(dim3   *grid,
                             uint32_t  numBlocks,
                             uint32_t  gridDimXMin,
-                            uint32_t  gridDimXMax)
-{
+                            uint32_t  gridDimXMax) {
   uint32_t gridDimX;
   uint32_t gridDimY;
 
-  if (gridDimXMax > cHmlMaxGridDimX) {
+  if(gridDimXMax > cHmlMaxGridDimX) {
     fprintf(stderr, "; Error: gridDimXMax = %d > cHmlMaxGridDimX = %d\n",
             gridDimXMax, cHmlMaxGridDimX);
     exit(EXIT_FAILURE);
   }
   /* double gridDimX until gridDimY is no more than cHmlMaxGridDimY */
-  for (gridDimX = gridDimXMin; gridDimX <= gridDimXMax; gridDimX *= 2) {
+  for(gridDimX = gridDimXMin; gridDimX <= gridDimXMax; gridDimX *= 2) {
     gridDimY = (numBlocks + gridDimX - 1) / gridDimX;
-    if (gridDimY <= cHmlMaxGridDimY)
+    if(gridDimY <= cHmlMaxGridDimY) {
       break;
+    }
   }
-  if (gridDimX > gridDimXMax) {
+  if(gridDimX > gridDimXMax) {
     fprintf(stderr, "; Error: gridDimX > gridDimXMax\n");
     exit(EXIT_FAILURE);
   }
@@ -318,31 +320,33 @@ void
 hmlTriangleCountKernelArgSet(HmlTriangleCountKernelArg *kernelArgs,
                              uint32_t                     numPartitions,
                              uint32_t                    *minOutDeg,
-                             uint32_t                    *partitionPrefixSize)
-{
+                             uint32_t                    *partitionPrefixSize) {
   uint32_t          p;
   uint32_t          numVertices;
   uint32_t          numBlocks;
   uint32_t          numThreadsPerBlock;
 
-  for (p = 0; p < numPartitions; ++p) {
+  for(p = 0; p < numPartitions; ++p) {
     kernelArgs[p].minDeg = minOutDeg[p];
-    if (p < numPartitions - 1)
+    if(p < numPartitions - 1) {
       kernelArgs[p].maxDeg = minOutDeg[p + 1];
-    if (p > 0)
+    }
+    if(p > 0) {
       kernelArgs[p].minVertexRank = partitionPrefixSize[p - 1];
-    else
+    }
+    else {
       kernelArgs[0].minVertexRank = 0;
+    }
     kernelArgs[p].maxVertexRank = partitionPrefixSize[p];
   }
   /* the last kernel instance always has maxDeg = infinity */
   kernelArgs[numPartitions - 1].maxDeg = (uint32_t)-1;
 
   /* setup the grid and block args for each partition */
-  for (p = 0; p < numPartitions; ++p) {
+  for(p = 0; p < numPartitions; ++p) {
     numVertices =
       kernelArgs[p].maxVertexRank - kernelArgs[p].minVertexRank; /* no +1 */
-    switch (kernelArgs[p].id) {
+    switch(kernelArgs[p].id) {
     case 0:
       kernelArgs[p].block.x = 8;
       kernelArgs[p].block.y = 8;
@@ -392,8 +396,7 @@ hmlTriangleCountKernelSetup(HmlTriangleCountKernel    *kernel,
                             uint32_t                    *minOutDegArr,
                             uint32_t                     maxNumKernels,
                             uint32_t                    *numPartitions,
-                            HmlTriangleCountKernelArg *kernelArgArr)
-{
+                            HmlTriangleCountKernelArg *kernelArgArr) {
   assert(maxNumKernels >= 3);
 
   *numPartitions = 3;

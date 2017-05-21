@@ -15,28 +15,26 @@
 #define cHmlPagerankSpmvThreadsPerBlock    512
 
 __global__ void
-hmlPagerankSpmvInitKernel(float *devMap, float initVal, uint32_t numVertices)
-{
+hmlPagerankSpmvInitKernel(float *devMap, float initVal, uint32_t numVertices) {
   int tid = threadIdx.x + blockIdx.x * blockDim.x;
 
-  while (tid < numVertices) {
+  while(tid < numVertices) {
     devMap[tid] = initVal;
     tid += blockDim.x * gridDim.x;
   }
 }
 
 void
-hmlPagerankSpmvKernelArgPrint(HmlPagerankSpmvKernelArg *kernelArg, uint32_t numPartitions)
-{
-  for (uint32_t i = 0; i < numPartitions; ++i) {
+hmlPagerankSpmvKernelArgPrint(HmlPagerankSpmvKernelArg *kernelArg, uint32_t numPartitions) {
+  for(uint32_t i = 0; i < numPartitions; ++i) {
     fprintf(stderr, "; Info: Kernel arg #%d:\n", i);
     fprintf(stderr, "; Info:     id            = %d\n", kernelArg[i].id);
     fprintf(stderr, "; Info:     minDeg        = %d\n", kernelArg[i].minDeg);
     fprintf(stderr, "; Info:     maxDeg        = %d\n", kernelArg[i].maxDeg);
     fprintf(stderr, "; Info:     minVertexRank = %d\n",
-      kernelArg[i].minVertexRank);
+            kernelArg[i].minVertexRank);
     fprintf(stderr, "; Info:     maxVertexRank = %d\n",
-      kernelArg[i].maxVertexRank);
+            kernelArg[i].maxVertexRank);
     fprintf(stderr, "; Info:     # of vertices = %d\n",
             kernelArg[i].maxVertexRank - kernelArg[i].minVertexRank + 1);
   }
@@ -50,25 +48,25 @@ hmlPagerankSpmvKernelArgPrint(HmlPagerankSpmvKernelArg *kernelArg, uint32_t numP
  */
 void
 hmlPagerankSpmvGridDimCalc(dim3   *grid,
-            uint32_t  numBlocks,
-            uint32_t  gridDimXMin,
-            uint32_t  gridDimXMax)
-{
+                           uint32_t  numBlocks,
+                           uint32_t  gridDimXMin,
+                           uint32_t  gridDimXMax) {
   uint32_t gridDimX;
   uint32_t gridDimY;
 
-  if (gridDimXMax > cHmlMaxGridDimX) {
+  if(gridDimXMax > cHmlMaxGridDimX) {
     fprintf(stderr, "; Error: gridDimXMax = %d > cHmlMaxGridDimX = %d\n",
             gridDimXMax, cHmlMaxGridDimX);
     exit(EXIT_FAILURE);
   }
   /* double gridDimX until gridDimY is no more than cHmlMaxGridDimY */
-  for (gridDimX = gridDimXMin; gridDimX <= gridDimXMax; gridDimX *= 2) {
+  for(gridDimX = gridDimXMin; gridDimX <= gridDimXMax; gridDimX *= 2) {
     gridDimY = (numBlocks + gridDimX - 1) / gridDimX;
-    if (gridDimY <= cHmlMaxGridDimY)
+    if(gridDimY <= cHmlMaxGridDimY) {
       break;
+    }
   }
-  if (gridDimX > gridDimXMax) {
+  if(gridDimX > gridDimXMax) {
     fprintf(stderr, "; Error: gridDimX > gridDimXMax\n");
     exit(EXIT_FAILURE);
   }
@@ -79,35 +77,37 @@ hmlPagerankSpmvGridDimCalc(dim3   *grid,
 
 void
 hmlPagerankSpmvKernelArgSet(HmlPagerankSpmvKernelArg *kernelArg,
-             uint32_t     numPartitions,
-             uint32_t    *minOutDeg, /* min out-degree of each partition */
-             uint32_t    *vertexRank,
-             uint32_t    *R,
-             uint32_t    *partitionPrefixSize)
-{
+                            uint32_t     numPartitions,
+                            uint32_t    *minOutDeg, /* min out-degree of each partition */
+                            uint32_t    *vertexRank,
+                            uint32_t    *R,
+                            uint32_t    *partitionPrefixSize) {
   uint32_t          p;
   uint32_t          numVertices;
   uint32_t          numBlocks;
   uint32_t          numThreadsPerBlock;
 
-  for (p = 0; p < numPartitions; ++p) {
+  for(p = 0; p < numPartitions; ++p) {
     kernelArg[p].minDeg = minOutDeg[p];
-    if (p < numPartitions - 1)
+    if(p < numPartitions - 1) {
       kernelArg[p].maxDeg = minOutDeg[p + 1];
-    if (p > 0)
+    }
+    if(p > 0) {
       kernelArg[p].minVertexRank = partitionPrefixSize[p - 1];
-    else
+    }
+    else {
       kernelArg[0].minVertexRank = 0;
+    }
     kernelArg[p].maxVertexRank = partitionPrefixSize[p];
   }
   /* the last kernel instance always has maxDeg = infinity */
   kernelArg[numPartitions - 1].maxDeg = (uint32_t)-1;
 
   /* setup the grid and block args for each partition */
-  for (p = 0; p < numPartitions; ++p) {
+  for(p = 0; p < numPartitions; ++p) {
     numVertices =
       kernelArg[p].maxVertexRank - kernelArg[p].minVertexRank; /* no +1 */
-    switch (kernelArg[p].id) {
+    switch(kernelArg[p].id) {
     case 0:
       kernelArg[p].block.x = 8;
       kernelArg[p].block.y = 8;
@@ -159,24 +159,23 @@ hmlPagerankSpmvKernelSetup(PagerankSpmvKernel       *evenIterKernel,
                            uint32_t                maxNumKernels,
                            bool                  useTextureMem,
                            uint32_t               *numPartitions,
-                           HmlPagerankSpmvKernelArg *kernelArgArr)
-{
+                           HmlPagerankSpmvKernelArg *kernelArgArr) {
   assert(maxNumKernels >= 3);
 
   *numPartitions = 3;
   evenIterKernel[0] = useTextureMem ?
-    hmlPagerankSpmvKernelEvenIter0<true> : hmlPagerankSpmvKernelEvenIter0<false>;
+                      hmlPagerankSpmvKernelEvenIter0<true> : hmlPagerankSpmvKernelEvenIter0<false>;
   evenIterKernel[1] = useTextureMem ?
-    hmlPagerankSpmvKernelEvenIter1<true> : hmlPagerankSpmvKernelEvenIter1<false>;
+                      hmlPagerankSpmvKernelEvenIter1<true> : hmlPagerankSpmvKernelEvenIter1<false>;
   evenIterKernel[2] = useTextureMem ?
-    hmlPagerankSpmvKernelEvenIter2<true> : hmlPagerankSpmvKernelEvenIter2<false>;
+                      hmlPagerankSpmvKernelEvenIter2<true> : hmlPagerankSpmvKernelEvenIter2<false>;
 
   oddIterKernel[0] = useTextureMem ?
-    hmlPagerankSpmvKernelOddIter0<true> : hmlPagerankSpmvKernelOddIter0<false>;
+                     hmlPagerankSpmvKernelOddIter0<true> : hmlPagerankSpmvKernelOddIter0<false>;
   oddIterKernel[1] = useTextureMem ?
-    hmlPagerankSpmvKernelOddIter1<true> : hmlPagerankSpmvKernelOddIter1<false>;
+                     hmlPagerankSpmvKernelOddIter1<true> : hmlPagerankSpmvKernelOddIter1<false>;
   oddIterKernel[2] = useTextureMem ?
-    hmlPagerankSpmvKernelOddIter2<true> : hmlPagerankSpmvKernelOddIter2<false>;
+                     hmlPagerankSpmvKernelOddIter2<true> : hmlPagerankSpmvKernelOddIter2<false>;
 
   /* set CUDA cache preference for kernels
    * cudaFuncCachePreferL1 makes code run ~6% faster

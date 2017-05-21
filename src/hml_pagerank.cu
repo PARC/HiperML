@@ -46,17 +46,17 @@ hmlPagerankPrintTopVertices(FILE      *file,
                             uint32_t   printTopK) {
   float scoreSum = 0.0;
   printTopK = min(printTopK, numVertices);
-  if (printTopK > 0) {
+  if(printTopK > 0) {
     vector<PagerankPair> pageRankPairVector;
-    for (size_t i = 0; i < numVertices; ++i) {
+    for(size_t i = 0; i < numVertices; ++i) {
       pageRankPairVector.push_back(make_pair(i, map[i]));
     }
     sort(pageRankPairVector.begin(), pageRankPairVector.end(),
-      hmlPagerankPairComparator);
+         hmlPagerankPairComparator);
     fprintf(file, "; vertex_id=pagerank_score\n");
-    for (size_t i = 0; i < printTopK; ++i) {
+    for(size_t i = 0; i < printTopK; ++i) {
       fprintf(file, "%d=%8.6f\n", pageRankPairVector[i].first,
-        pageRankPairVector[i].second);
+              pageRankPairVector[i].second);
       scoreSum += pageRankPairVector[i].second;
     }
     fprintf(stderr, "; Info: Top %d score sum = %f\n", printTopK, scoreSum);
@@ -69,7 +69,7 @@ hmlPagerankInitVectors(HmlPagerank *pagerank) {
   uint32_t   v;
   float *vector0;
   uint32_t   numVertices = max(pagerank->core.maxSrcVertex,
-                             pagerank->core.maxDestVertex) + 1;
+                               pagerank->core.maxDestVertex) + 1;
 
   if(!pagerank->vector0) {
     MALLOC(pagerank->vector0, float, numVertices);
@@ -97,7 +97,7 @@ hmlPagerankCpu(HmlPagerank *pagerank) {
   uint32_t   v;
   uint32_t   maxNumSrcVertices = pagerank->core.maxNumSrcVertices;
   uint32_t   numVertices = max(pagerank->core.maxSrcVertex,
-                             pagerank->core.maxDestVertex) + 1;
+                               pagerank->core.maxDestVertex) + 1;
   float  oneMinusDoverN = (1.0f - dampingFactor) / (float)numVertices;
   float  inputProbSum;
   float *vectorPre;
@@ -164,19 +164,19 @@ hmlPagerankPartitionVertexByOutDeg(HmlGraphCore  *core,
   MALLOC(partitionPtr, uint32_t *, numPartitions);
   MALLOC(partitionEndPtr, uint32_t *, numPartitions);
   MALLOC(pPartitionAllocSize, uint32_t, numPartitions);
-  for (p = 0; p < numPartitions; ++p) {
+  for(p = 0; p < numPartitions; ++p) {
     MALLOC(partitions[p], uint32_t, cHmlPagerankPartitionSizeInit);
     pPartitionAllocSize[p] = cHmlPagerankPartitionSizeInit;
     partitionPtr[p] = partitions[p];
     partitionEndPtr[p] = partitions[p] + cHmlPagerankPartitionSizeInit;
   }
-  for (v = core->minSrcVertex; v <= core->maxSrcVertex; ++v) {
+  for(v = core->minSrcVertex; v <= core->maxSrcVertex; ++v) {
     outDeg = R[v + 1] - R[v]; /* each page takes one 32-bit word */
     /* use linear scan to find which partition this vertex belongs to */
-    for (p = 0; p < numPartitions && minOutDeg[p] <= outDeg; ++p);
-    if (p > 0) {
+    for(p = 0; p < numPartitions && minOutDeg[p] <= outDeg; ++p);
+    if(p > 0) {
       --p;
-      if (partitionPtr[p] == partitionEndPtr[p]) {
+      if(partitionPtr[p] == partitionEndPtr[p]) {
         REALLOC(partitions[p], uint32_t, pPartitionAllocSize[p] * 2);
         partitionPtr[p] = partitions[p] + pPartitionAllocSize[p];
         pPartitionAllocSize[p] *= 2;
@@ -185,20 +185,20 @@ hmlPagerankPartitionVertexByOutDeg(HmlGraphCore  *core,
       *partitionPtr[p]++ = v;
     }
   }
-  for (p = 0; p < numPartitions; ++p) {
+  for(p = 0; p < numPartitions; ++p) {
     prefixSize += partitionPtr[p] - partitions[p];
     partitionPrefixSize[p] = prefixSize;
-    if (prefixSize > numSrcVertices) {
+    if(prefixSize > numSrcVertices) {
       fprintf(stderr, "; Error: prefixSize = %d > numSrcVertices = %d\n",
               prefixSize, numSrcVertices);
       exit(EXIT_FAILURE);
     }
-    memcpy((void*)vertexRank, partitions[p],
+    memcpy((void *)vertexRank, partitions[p],
            sizeof(uint32_t) * (partitionPtr[p] - partitions[p]));
     vertexRank += partitionPtr[p] - partitions[p];
   }
   /* free memory */
-  for (p = 0; p < numPartitions; ++p) {
+  for(p = 0; p < numPartitions; ++p) {
     FREE(partitions[p]);
     FREE(partitionPtr);
     FREE(partitionEndPtr);
@@ -226,11 +226,11 @@ hmlPagerankGpuInit(HmlPagerank *pagerank) {
   double   wallStart;
   double   wallEnd;
 
-  if (!pagerank->vector0) {
+  if(!pagerank->vector0) {
     MALLOC(pagerank->vector0, float, numVertices);
   }
   /* get free gpu memory size */
-  if (pagerank->verbosity >= 2) {
+  if(pagerank->verbosity >= 2) {
     HANDLE_ERROR(cudaMemGetInfo(&freeBytes, &totalBytes));
     fprintf(stderr, "; Info: GPU memory: %ld bytes free, %ld bytes total\n",
             freeBytes, totalBytes);
@@ -240,16 +240,16 @@ hmlPagerankGpuInit(HmlPagerank *pagerank) {
   hmlGraphCoreCopyToGpu(&pagerank->core, &pagerank->gpuCore);
   cudaDeviceSynchronize();
   hmlGetSecs(&cpuEnd, &wallEnd);
-  if (pagerank->verbosity >= 2) {
+  if(pagerank->verbosity >= 2) {
     fprintf(stderr, "; Info: Load graph to device: wall time = %.2lf\n",
             (wallEnd - wallStart) * 1000);
   }
-  if (numVertices > cHmlMaxCudaTexture1DLinear) {
+  if(numVertices > cHmlMaxCudaTexture1DLinear) {
     hmlPrintf("; Error: Number of vertices exceeds the maximum "
               "texture 1D size\n");
     HML_ERR_GEN(true, cHmlErrGeneral);
   }
-  if (pagerank->useTextureMem && pagerank->gpuCore.maxNumSrcVertices
+  if(pagerank->useTextureMem && pagerank->gpuCore.maxNumSrcVertices
       <= cHmlMaxCudaTexture1DLinear
       && core->numEdges <= cHmlMaxCudaTexture1DLinear) {
     hmlGraphCoreBindTexture(&pagerank->gpuCore, texDataR, texDataE);
@@ -286,7 +286,7 @@ hmlPagerankGpuInit(HmlPagerank *pagerank) {
                           cudaMemcpyHostToDevice));
   cudaDeviceSynchronize();
   hmlGetSecs(&cpuEnd, &wallEnd);
-  if (pagerank->verbosity >= 2) {
+  if(pagerank->verbosity >= 2) {
     fprintf(stderr, "; Info: Partition and copy vertice ranks to device: "
             "wall time = %.2lf\n", (wallEnd - wallStart) * 1000);
     fprintf(stderr, "; Info: Number of pages with in-coming link: %d (%.2lf%%)\n",
@@ -296,8 +296,8 @@ hmlPagerankGpuInit(HmlPagerank *pagerank) {
             sizeof(uint32_t) / (double)(1024 * 1024));
   }
   /* print vertex ranks for small graphs */
-  if (pagerank->verbosity >= 3 && vertexRankSize <= 100) {
-    for (uint32_t r = 0; r < vertexRankSize; ++r) {
+  if(pagerank->verbosity >= 3 && vertexRankSize <= 100) {
+    for(uint32_t r = 0; r < vertexRankSize; ++r) {
       fprintf(stderr, "; Info: rank %3d = vertex %3d\n", r, vertexRank[r]);
     }
   }
@@ -307,8 +307,9 @@ hmlPagerankGpuInit(HmlPagerank *pagerank) {
                           minOutDeg, partitionPrefixSize);
 
   /* print kernel params */
-  if (pagerank->verbosity >= 2)
+  if(pagerank->verbosity >= 2) {
     hmlPagerankKernelArgPrint(pagerank->kernelArgs, pagerank->numPartitions);
+  }
 
   pagerank->gpuVector0 = hmlDeviceFloatArrayAllocBind(numVertices, texDataVec0);
   pagerank->gpuVector1 = hmlDeviceFloatArrayAllocBind(numVertices, texDataVec1);
@@ -345,34 +346,34 @@ hmlPagerankGpu(HmlPagerank *pagerank) {
 
   hmlGetSecs(&cpuStart, &wallStart);
   hmlPagerankInitKernel<<<cHmlBlocksPerGrid, cHmlThreadsPerBlock>>>
-    (gpuVector0, initVal, numVertices);
+  (gpuVector0, initVal, numVertices);
 
-  for (uint32_t iter = 0; iter < pagerank->numIters; ++iter) {
+  for(uint32_t iter = 0; iter < pagerank->numIters; ++iter) {
     //fprintf(stderr, "; Info: iter = %d\n", iter);
-    if (iter % 2 == 0) {
+    if(iter % 2 == 0) {
       hmlPagerankInitKernel<<<cHmlBlocksPerGrid, cHmlThreadsPerBlock>>>
-        (gpuVector1, oneMinusDoverN, numVertices);
-      for (uint32_t p = 0; p < numPartitions; ++p) {
+      (gpuVector1, oneMinusDoverN, numVertices);
+      for(uint32_t p = 0; p < numPartitions; ++p) {
         kernelEven[kernelArgs[p].id]<<<kernelArgs[p].grid, kernelArgs[p].block>>>
-          (gpuVector1, gpuCore->R, gpuCore->E, gpuVertexRank,
-           kernelArgs[p].minVertexRank, kernelArgs[p].maxVertexRank,
-           dampingFactor);
+        (gpuVector1, gpuCore->R, gpuCore->E, gpuVertexRank,
+         kernelArgs[p].minVertexRank, kernelArgs[p].maxVertexRank,
+         dampingFactor);
       }
     }
     else {
       hmlPagerankInitKernel<<<cHmlBlocksPerGrid, cHmlThreadsPerBlock>>>
-        (gpuVector0, oneMinusDoverN, numVertices);
-      for (uint32_t p = 0; p < numPartitions; ++p) {
+      (gpuVector0, oneMinusDoverN, numVertices);
+      for(uint32_t p = 0; p < numPartitions; ++p) {
         kernelOdd[kernelArgs[p].id]<<<kernelArgs[p].grid, kernelArgs[p].block>>>
-          (gpuVector0, gpuCore->R, gpuCore->E, gpuVertexRank,
-           kernelArgs[p].minVertexRank, kernelArgs[p].maxVertexRank,
-           dampingFactor);
+        (gpuVector0, gpuCore->R, gpuCore->E, gpuVertexRank,
+         kernelArgs[p].minVertexRank, kernelArgs[p].maxVertexRank,
+         dampingFactor);
       }
     }
   }
   cudaDeviceSynchronize();
   hmlGetSecs(&cpuEnd, &wallEnd);
-  if (pagerank->verbosity >= 1) {
+  if(pagerank->verbosity >= 1) {
     fprintf(stderr, "; Info: GPU pagerank: wall time = %.2lf\n",
             (wallEnd - wallStart) * 1000);
   }
@@ -405,14 +406,14 @@ hmlPagerankDelete(HmlPagerank *pagerank) {
   HANDLE_ERROR(cudaFree(pagerank->gpuVector0));
   HANDLE_ERROR(cudaFree(pagerank->gpuVector1));
   HANDLE_ERROR(cudaFree(pagerank->gpuOutDegreeArr));
-  if (pagerank->gpuCore.numEdges > 0) {
+  if(pagerank->gpuCore.numEdges > 0) {
     hmlGraphCoreGpuDelete(&pagerank->gpuCore);
   }
   HANDLE_ERROR(cudaFree(pagerank->gpuVertexRank));
   HANDLE_ERROR(cudaUnbindTexture(texDataVec0));
   HANDLE_ERROR(cudaUnbindTexture(texDataVec1));
   HANDLE_ERROR(cudaUnbindTexture(texDataD));
-  if (pagerank->useTextureMem) {
+  if(pagerank->useTextureMem) {
     hmlGraphCoreUnbindTexture(texDataR, texDataE);
   }
 
@@ -498,7 +499,7 @@ hmlPagerankFindTopK(HmlPagerank *pagerank) {
   float  minTopKValue;
   uint32_t topK = pagerank->topK;
   uint32_t numVertices = max(pagerank->core.maxSrcVertex,
-                           pagerank->core.maxDestVertex) + 1;
+                             pagerank->core.maxDestVertex) + 1;
   HmlVertexfloat *topKVertexValue;
 
   HML_ERR_GEN(topK == 0, cHmlErrGeneral);

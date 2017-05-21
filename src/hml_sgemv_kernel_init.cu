@@ -16,16 +16,15 @@
  */
 void
 hmlSgemvKernelInitReset(HmlSgemvKernelVarN   varN[][cHmlMaxStops+1],
-                        HmlSgemvKernelConstN constN[][cHmlMaxBlockStops+1][cHmlMaxStops+1])
-{
+                        HmlSgemvKernelConstN constN[][cHmlMaxBlockStops+1][cHmlMaxStops+1]) {
   int blockStops;
   int rowStops;
   int N;
   cudaDeviceProp prop;
 
   HANDLE_ERROR(cudaGetDeviceProperties(&prop, 0));
-  for (blockStops = 1; blockStops <= cHmlMaxBlockStops; ++blockStops) {
-    for (rowStops = 1; rowStops <= cHmlMaxStops; ++rowStops) {
+  for(blockStops = 1; blockStops <= cHmlMaxBlockStops; ++blockStops) {
+    for(rowStops = 1; rowStops <= cHmlMaxStops; ++rowStops) {
       /* the following inequality test is only a heuristic!
        * the reason to use 'rowStop * 2' as a heuristic estimate of
        * how many registers will be used in the constN and varN kernels
@@ -33,10 +32,11 @@ hmlSgemvKernelInitReset(HmlSgemvKernelVarN   varN[][cHmlMaxStops+1],
        * need 'rowStops' 32-bit registers, although the actual number of
        * registers compiled by nvcc may be different
        */
-      if (rowStops * 2 > hmlMaxNumRegistersPerThread(&prop)) {
+      if(rowStops * 2 > hmlMaxNumRegistersPerThread(&prop)) {
         varN[blockStops][rowStops] = NULL;
-        for (N = 1; N <= cHmlMaxSkinnyN; ++N)
+        for(N = 1; N <= cHmlMaxSkinnyN; ++N) {
           constN[N][blockStops][rowStops] = NULL;
+        }
       }
     }
   }
@@ -45,8 +45,7 @@ hmlSgemvKernelInitReset(HmlSgemvKernelVarN   varN[][cHmlMaxStops+1],
 void
 hmlSgemvKernelRepoInit(HmlSgemvKernelVarN  *basic,
                        HmlSgemvKernelVarN   varN[][cHmlMaxStops+1],
-                       HmlSgemvKernelConstN constN[][cHmlMaxBlockStops+1][cHmlMaxStops+1])
-{
+                       HmlSgemvKernelConstN constN[][cHmlMaxBlockStops+1][cHmlMaxStops+1]) {
   int numBasicKernels = cHmlMaxBlockStops + 1;
   int numVarNKernels = (cHmlMaxBlockStops + 1) * (cHmlMaxStops + 1);
   int numConstNKernels =

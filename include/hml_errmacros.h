@@ -164,13 +164,13 @@ do {\
 } while (0)
 #endif  /* HML_ERR_PASS defined */
 
- /*! Call a routine, check return code for errors
- *
- *   This calls a function and checks the return code for errors.  It
- *   assumes that the function returns an error code, and if the error
- *   code is non-zero, returns from the function without
- *   printing an error message.
- */
+/*! Call a routine, check return code for errors
+*
+*   This calls a function and checks the return code for errors.  It
+*   assumes that the function returns an error code, and if the error
+*   code is non-zero, returns from the function without
+*   printing an error message.
+*/
 
 #ifndef HML_ERR_PASS_SILENT
 #define HML_ERR_PASS_SILENT(functionCall)\

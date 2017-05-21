@@ -42,19 +42,18 @@ hmlPagerankSpmvKernelEvenIter0(float           *map1,         /* output map */
                                const uint32_t  *vertexRank,
                                const uint32_t   minVertexRank, /* inclusive */
                                const uint32_t   maxVertexRank, /* exclusive */
-                               const float      dampingFactor)
-{
+                               const float      dampingFactor) {
   const int     x    = threadIdx.x + blockIdx.x * blockDim.x;
   const int     y    = threadIdx.y + blockIdx.y * blockDim.y;
   const uint32_t  rank = x + y * blockDim.x * gridDim.x + minVertexRank;
 
-  if (rank < maxVertexRank) {
+  if(rank < maxVertexRank) {
     float inputProbSum = 0.0;
     const uint32_t v = vertexRank[rank];
-    if (useTextureMem) {
+    if(useTextureMem) {
       uint32_t minSuccIdx = texR(v);
       const uint32_t maxSuccIdx = texR(v + 1);
-      while (minSuccIdx < maxSuccIdx) {
+      while(minSuccIdx < maxSuccIdx) {
         inputProbSum += texMap0(texE(minSuccIdx)) / texE(minSuccIdx + 1);
         minSuccIdx += 2;
       }
@@ -68,7 +67,7 @@ hmlPagerankSpmvKernelEvenIter0(float           *map1,         /* output map */
       //}
       const uint32_t  *succ    = &E[R[v]];
       const uint32_t  *succMax = &E[R[v + 1]];
-      while (succ < succMax) {
+      while(succ < succMax) {
         inputProbSum += texMap0(succ[0]) / succ[1];
         succ += 2;
       }
@@ -93,19 +92,18 @@ hmlPagerankSpmvKernelOddIter0(float           *map0,         /* output map */
                               const uint32_t  *vertexRank,
                               const uint32_t   minVertexRank, /* inclusive */
                               const uint32_t   maxVertexRank, /* exclusive */
-                              const float      dampingFactor)
-{
+                              const float      dampingFactor) {
   const int     x    = threadIdx.x + blockIdx.x * blockDim.x;
   const int     y    = threadIdx.y + blockIdx.y * blockDim.y;
   const uint32_t  rank = x + y * blockDim.x * gridDim.x + minVertexRank;
 
-  if (rank < maxVertexRank) {
+  if(rank < maxVertexRank) {
     float inputProbSum = 0.0;
     const uint32_t v = vertexRank[rank];
-    if (useTextureMem) {
+    if(useTextureMem) {
       uint32_t       minSuccIdx = texR(v);
       const uint32_t maxSuccIdx = texR(v + 1);
-      while (minSuccIdx < maxSuccIdx) {
+      while(minSuccIdx < maxSuccIdx) {
         inputProbSum += texMap1(texE(minSuccIdx)) / texE(minSuccIdx + 1);
         minSuccIdx += 2;
       }
@@ -119,7 +117,7 @@ hmlPagerankSpmvKernelOddIter0(float           *map0,         /* output map */
       //}
       const uint32_t  *succ    = &E[R[v]];
       const uint32_t  *succMax = &E[R[v + 1]];
-      while (succ < succMax) {
+      while(succ < succMax) {
         inputProbSum += texMap1(succ[0]) / succ[1];
         succ += 2;
       }
@@ -144,22 +142,21 @@ hmlPagerankSpmvKernelEvenIter1(float           *map1,         /* output map */
                                const uint32_t  *vertexRank,
                                const uint32_t   minVertexRank, /* inclusive */
                                const uint32_t   maxVertexRank, /* exclusive */
-                               const float      dampingFactor)
-{
+                               const float      dampingFactor) {
   const uint32_t  rank = blockIdx.x + blockIdx.y * gridDim.x + minVertexRank;
   const uint32_t  tid  = threadIdx.x;
   uint32_t   v;
   float  psum = 0.0;
   __shared__ float  inputProbSum[cHmlThreadsPerWarp];
 
-  if (rank < maxVertexRank) {
+  if(rank < maxVertexRank) {
     v = vertexRank[rank];
-    if (useTextureMem) {
+    if(useTextureMem) {
       uint32_t       minSuccIdx = texR(v);
       const uint32_t maxSuccIdx = texR(v + 1);
-      for (minSuccIdx += tid * 2;
-           minSuccIdx < maxSuccIdx;
-           minSuccIdx += cHmlThreadsPerWarp * 2) {
+      for(minSuccIdx += tid * 2;
+          minSuccIdx < maxSuccIdx;
+          minSuccIdx += cHmlThreadsPerWarp * 2) {
         psum += texMap0(texE(minSuccIdx)) / texE(minSuccIdx + 1);
       }
     }
@@ -175,19 +172,22 @@ hmlPagerankSpmvKernelEvenIter1(float           *map1,         /* output map */
       const uint32_t maxSuccIdx = R[v + 1];
       const uint32_t succs      = maxSuccIdx - minSuccIdx;
       const uint32_t succIdx    = minSuccIdx + tid * 2;
-      for (int succ = 0; tid * 2 + succ < succs; succ += cHmlThreadsPerWarp * 2)
+      for(int succ = 0; tid * 2 + succ < succs; succ += cHmlThreadsPerWarp * 2) {
         psum += texMap0(E[succIdx + succ]) / E[succIdx + succ + 1];
+      }
     }
   }
   inputProbSum[tid] = psum;
   //__syncthreads();
-  for (int numReducers = blockDim.x / 2; numReducers > 0; numReducers /= 2) {
-    if (tid < numReducers)
+  for(int numReducers = blockDim.x / 2; numReducers > 0; numReducers /= 2) {
+    if(tid < numReducers) {
       inputProbSum[tid] += inputProbSum[tid + numReducers];
+    }
     //__syncthreads();
   }
-  if (tid == 0 && rank < maxVertexRank)
-      map1[v] += dampingFactor * inputProbSum[0];
+  if(tid == 0 && rank < maxVertexRank) {
+    map1[v] += dampingFactor * inputProbSum[0];
+  }
 }
 
 /* 1-warp-1-row kernel assumes there are as many blocks
@@ -206,20 +206,19 @@ hmlPagerankSpmvKernelOddIter1(float           *map0,         /* output map */
                               const uint32_t  *vertexRank,
                               const uint32_t   minVertexRank, /* inclusive */
                               const uint32_t   maxVertexRank, /* exclusive */
-                              const float      dampingFactor)
-{
+                              const float      dampingFactor) {
   const uint32_t  rank = blockIdx.x + blockIdx.y * gridDim.x + minVertexRank;
   const uint32_t  tid  = threadIdx.x;
   uint32_t   v;
   float  psum = 0.0;
   __shared__ float  inputProbSum[cHmlThreadsPerWarp];
 
-  if (rank < maxVertexRank) {
+  if(rank < maxVertexRank) {
     v = vertexRank[rank];
-    if (useTextureMem) {
+    if(useTextureMem) {
       uint32_t       minSuccIdx = texR(v);
       const uint32_t maxSuccIdx = texR(v + 1);
-      for (minSuccIdx += tid * 2; minSuccIdx < maxSuccIdx; minSuccIdx += cHmlThreadsPerWarp * 2) {
+      for(minSuccIdx += tid * 2; minSuccIdx < maxSuccIdx; minSuccIdx += cHmlThreadsPerWarp * 2) {
         psum += texMap1(texE(minSuccIdx)) / texE(minSuccIdx + 1);
       }
     }
@@ -235,19 +234,22 @@ hmlPagerankSpmvKernelOddIter1(float           *map0,         /* output map */
       const uint32_t maxSuccIdx = R[v + 1];
       const uint32_t succs      = maxSuccIdx - minSuccIdx;
       const uint32_t succIdx    = minSuccIdx + tid * 2;
-      for (int succ = 0; tid * 2 + succ < succs; succ += cHmlThreadsPerWarp * 2)
+      for(int succ = 0; tid * 2 + succ < succs; succ += cHmlThreadsPerWarp * 2) {
         psum += texMap1(E[succIdx + succ]) / E[succIdx + succ + 1];
+      }
     }
   }
   inputProbSum[tid] = psum;
   //__syncthreads();
-  for (int numReducers = blockDim.x / 2; numReducers > 0; numReducers /= 2) {
-    if (tid < numReducers)
+  for(int numReducers = blockDim.x / 2; numReducers > 0; numReducers /= 2) {
+    if(tid < numReducers) {
       inputProbSum[tid] += inputProbSum[tid + numReducers];
+    }
     //__syncthreads();
   }
-  if (tid == 0 && rank < maxVertexRank)
-      map0[v] += dampingFactor * inputProbSum[0];
+  if(tid == 0 && rank < maxVertexRank) {
+    map0[v] += dampingFactor * inputProbSum[0];
+  }
 }
 
 /* 1-block-1-row kernel assumes there are as many blocks
@@ -265,22 +267,21 @@ hmlPagerankSpmvKernelEvenIter2(float           *map1,         /* output map */
                                const uint32_t  *vertexRank,
                                const uint32_t   minVertexRank, /* inclusive */
                                const uint32_t   maxVertexRank, /* exclusive */
-                               const float      dampingFactor)
-{
+                               const float      dampingFactor) {
   const uint32_t   rank = blockIdx.x + blockIdx.y * gridDim.x + minVertexRank;
   const uint32_t   tid  = threadIdx.x;
   uint32_t   v;
   float  psum = 0.0;
   __shared__ float  inputProbSum[cHmlPagerankSpmvThreadsPerBlock];
 
-  if (rank < maxVertexRank) {
+  if(rank < maxVertexRank) {
     v = vertexRank[rank];
-    if (useTextureMem) {
+    if(useTextureMem) {
       uint32_t       minSuccIdx = texR(v);
       const uint32_t maxSuccIdx = texR(v + 1);
-      for (minSuccIdx += tid * 2;
-           minSuccIdx < maxSuccIdx;
-           minSuccIdx += cHmlPagerankSpmvThreadsPerBlock * 2) {
+      for(minSuccIdx += tid * 2;
+          minSuccIdx < maxSuccIdx;
+          minSuccIdx += cHmlPagerankSpmvThreadsPerBlock * 2) {
         psum += texMap0(texE(minSuccIdx)) / texE(minSuccIdx + 1);
       }
     }
@@ -296,19 +297,22 @@ hmlPagerankSpmvKernelEvenIter2(float           *map1,         /* output map */
       const uint32_t maxSuccIdx = R[v + 1];
       const uint32_t succs      = maxSuccIdx - minSuccIdx;
       const uint32_t succIdx    = minSuccIdx + tid * 2;
-      for (int succ = 0; tid * 2 + succ < succs; succ += cHmlPagerankSpmvThreadsPerBlock * 2)
+      for(int succ = 0; tid * 2 + succ < succs; succ += cHmlPagerankSpmvThreadsPerBlock * 2) {
         psum += texMap0(E[succIdx + succ]) / E[succIdx + succ + 1];
+      }
     }
   }
   inputProbSum[tid] = psum;
   __syncthreads();
-  for (int numReducers = blockDim.x / 2; numReducers > 0; numReducers /= 2) {
-    if (tid < numReducers)
+  for(int numReducers = blockDim.x / 2; numReducers > 0; numReducers /= 2) {
+    if(tid < numReducers) {
       inputProbSum[tid] += inputProbSum[tid + numReducers];
+    }
     __syncthreads();
   }
-  if (tid == 0 && rank < maxVertexRank)
+  if(tid == 0 && rank < maxVertexRank) {
     map1[v] += dampingFactor * inputProbSum[0];
+  }
 }
 
 /* 1-block-1-row kernel assumes there are as many blocks
@@ -326,22 +330,21 @@ hmlPagerankSpmvKernelOddIter2(float           *map0,         /* output map */
                               const uint32_t  *vertexRank,
                               const uint32_t   minVertexRank, /* inclusive */
                               const uint32_t   maxVertexRank, /* exclusive */
-                              const float      dampingFactor)
-{
+                              const float      dampingFactor) {
   const uint32_t   rank = blockIdx.x + blockIdx.y * gridDim.x + minVertexRank;
   const uint32_t   tid  = threadIdx.x;
   uint32_t   v;
   float  psum = 0.0;
   __shared__ float  inputProbSum[cHmlPagerankSpmvThreadsPerBlock];
 
-  if (rank < maxVertexRank) {
+  if(rank < maxVertexRank) {
     v = vertexRank[rank];
-    if (useTextureMem) {
+    if(useTextureMem) {
       uint32_t       minSuccIdx = texR(v);
       const uint32_t maxSuccIdx = texR(v + 1);
-      for (minSuccIdx += tid * 2;
-           minSuccIdx < maxSuccIdx;
-           minSuccIdx += cHmlPagerankSpmvThreadsPerBlock * 2) {
+      for(minSuccIdx += tid * 2;
+          minSuccIdx < maxSuccIdx;
+          minSuccIdx += cHmlPagerankSpmvThreadsPerBlock * 2) {
         psum += texMap1(texE(minSuccIdx)) / texE(minSuccIdx + 1);
       }
     }
@@ -357,19 +360,22 @@ hmlPagerankSpmvKernelOddIter2(float           *map0,         /* output map */
       const uint32_t maxSuccIdx = R[v + 1];
       const uint32_t succs      = maxSuccIdx - minSuccIdx;
       const uint32_t succIdx    = minSuccIdx + tid * 2;
-      for (int succ = 0; tid * 2 + succ < succs; succ += cHmlPagerankSpmvThreadsPerBlock * 2)
+      for(int succ = 0; tid * 2 + succ < succs; succ += cHmlPagerankSpmvThreadsPerBlock * 2) {
         psum += texMap1(E[succIdx + succ]) / E[succIdx + succ + 1];
+      }
     }
   }
   inputProbSum[tid] = psum;
   __syncthreads();
-  for (int numReducers = blockDim.x / 2; numReducers > 0; numReducers /= 2) {
-    if (tid < numReducers)
+  for(int numReducers = blockDim.x / 2; numReducers > 0; numReducers /= 2) {
+    if(tid < numReducers) {
       inputProbSum[tid] += inputProbSum[tid + numReducers];
+    }
     __syncthreads();
   }
-  if (tid == 0 && rank < maxVertexRank)
+  if(tid == 0 && rank < maxVertexRank) {
     map0[v] += dampingFactor * inputProbSum[0];
+  }
 }
 
 /* this kernel assumes there are cHmlBlocksPerGrid x
@@ -389,17 +395,16 @@ hmlPagerankSpmvKernelEvenIter3(float           *map1,         /* output map */
                                const uint32_t  *vertexRank,
                                const uint32_t   minVertexRank, /* inclusive */
                                const uint32_t   maxVertexRank, /* exclusive */
-                               const float      dampingFactor)
-{
+                               const float      dampingFactor) {
   uint32_t   rank = threadIdx.x + blockIdx.x * blockDim.x + minVertexRank;
 
-  while (rank < maxVertexRank) {
+  while(rank < maxVertexRank) {
     float inputProbSum = 0.0;
     const uint32_t v = vertexRank[rank];
-    if (useTextureMem) {
+    if(useTextureMem) {
       uint32_t       minSuccIdx = texR(v);
       const uint32_t maxSuccIdx = texR(v + 1);
-      while (minSuccIdx < maxSuccIdx) {
+      while(minSuccIdx < maxSuccIdx) {
         inputProbSum += texMap0(texE(minSuccIdx)) / texE(minSuccIdx + 1);
         minSuccIdx += 2;
       }
@@ -407,7 +412,7 @@ hmlPagerankSpmvKernelEvenIter3(float           *map1,         /* output map */
     else {
       const uint32_t *succ    = &E[R[v]];
       const uint32_t *succMax = &E[R[v + 1]];
-      while (succ < succMax) {
+      while(succ < succMax) {
         inputProbSum += texMap0(succ[0]) / succ[1];
         succ += 2;
       }
@@ -434,17 +439,16 @@ hmlPagerankSpmvKernelOddIter3(float           *map0,         /* output map */
                               const uint32_t  *vertexRank,
                               const uint32_t   minVertexRank, /* inclusive */
                               const uint32_t   maxVertexRank, /* exclusive */
-                              const float      dampingFactor)
-{
+                              const float      dampingFactor) {
   uint32_t   rank = threadIdx.x + blockIdx.x * blockDim.x + minVertexRank;
 
-  while (rank < maxVertexRank) {
+  while(rank < maxVertexRank) {
     float inputProbSum = 0.0;
     const uint32_t v = vertexRank[rank];
-    if (useTextureMem) {
+    if(useTextureMem) {
       uint32_t       minSuccIdx = texR(v);
       const uint32_t maxSuccIdx = texR(v + 1);
-      while (minSuccIdx < maxSuccIdx) {
+      while(minSuccIdx < maxSuccIdx) {
         inputProbSum += texMap1(texE(minSuccIdx)) / texE(minSuccIdx + 1);
         minSuccIdx += 2;
       }
@@ -452,7 +456,7 @@ hmlPagerankSpmvKernelOddIter3(float           *map0,         /* output map */
     else {
       const uint32_t *succ    = &E[R[v]];
       const uint32_t *succMax = &E[R[v + 1]];
-      while (succ < succMax) {
+      while(succ < succMax) {
         inputProbSum += texMap1(succ[0]) / succ[1];
         succ += 2;
       }
@@ -485,12 +489,11 @@ pagerankEven4(uint32_t  *R,
               float *map1,
               uint32_t   minVertexRank, /* inclusive */
               uint32_t   maxVertexRank, /* exclusive */
-              float  dampingFactor)
-{
+              float  dampingFactor) {
   uint32_t   tid = threadIdx.x;
   uint32_t   maxTid;
   uint32_t   rank = tid + blockIdx.x * blockDim.x +
-    blockIdx.y * blockDim.x * gridDim.x + minVertexRank;
+                    blockIdx.y * blockDim.x * gridDim.x + minVertexRank;
   uint32_t   v;
   uint32_t  *succMin = NULL;
   uint32_t  *succMax = NULL;
@@ -511,7 +514,7 @@ pagerankEven4(uint32_t  *R,
   __shared__ float  inputProb[cHmlThreadsPerWarp];
 
   prefixDeg[tid] = 0;
-  if (rank < maxVertexRank) {
+  if(rank < maxVertexRank) {
     v = vertexRank[rank];
     succMin = succ = &E[R[v]];
     succMax = &E[R[v + 1]];
@@ -519,9 +522,9 @@ pagerankEven4(uint32_t  *R,
   }
   /* preform exclusive scan */
   /* build sum in place up the tree */
-  for (uint32_t d = cHmlThreadsPerWarp >> 1; d > 0; d >>= 1) {
+  for(uint32_t d = cHmlThreadsPerWarp >> 1; d > 0; d >>= 1) {
     //__syncthreads();
-    if (tid < d) {
+    if(tid < d) {
       uint32_t ai = offset*(2*tid+1)-1;
       uint32_t bi = offset*(2*tid+2)-1;
       prefixDeg[bi] += prefixDeg[ai];
@@ -529,15 +532,15 @@ pagerankEven4(uint32_t  *R,
     offset *= 2;
   }
   /* clear the last element */
-  if (tid == 0) {
+  if(tid == 0) {
     totalDeg = prefixDeg[cHmlThreadsPerWarp - 1];
     prefixDeg[cHmlThreadsPerWarp - 1] = 0;
   }
   /* traverse down tree & build scan */
-  for (uint32_t d = 1; d < cHmlThreadsPerWarp; d *= 2) {
+  for(uint32_t d = 1; d < cHmlThreadsPerWarp; d *= 2) {
     offset >>= 1;
     //__syncthreads();
-    if (tid < d) {
+    if(tid < d) {
       uint32_t ai = offset*(2*tid+1)-1;
       uint32_t bi = offset*(2*tid+2)-1;
       uint32_t tmp = prefixDeg[ai];
@@ -547,7 +550,7 @@ pagerankEven4(uint32_t  *R,
   }
   //__syncthreads();
   curDeg = prefixDeg[tid];
-  while (doneDeg < totalDeg) {
+  while(doneDeg < totalDeg) {
     inputProbMinIdx = inputProbMaxIdx = (uint32_t)-1;
     /* is this the first successor for this iteration and at least
      * one of its siblings was processed in the previous iteration?
@@ -555,46 +558,51 @@ pagerankEven4(uint32_t  *R,
      * added to 'curProbSum'
      */
     needPrev = (curDeg == doneDeg && succ < succMax && succ != succMin) ?
-      TRUE : FALSE;
+               TRUE : FALSE;
     prevProbSum = (needPrev == TRUE) ? nextProbSum : 0.0;
     /* distribute the successors to the entire warp */
-    while ((curDeg < doneDeg + cHmlThreadsPerWarp) && (succ < succMax)) {
+    while((curDeg < doneDeg + cHmlThreadsPerWarp) && (succ < succMax)) {
       localR[curDeg - doneDeg] = succ;
-      if (inputProbMinIdx == (uint32_t)-1)
-        inputProbMinIdx = curDeg - doneDeg;/* dub as flag being in this loop */
+      if(inputProbMinIdx == (uint32_t)-1) {
+        inputProbMinIdx = curDeg - doneDeg;  /* dub as flag being in this loop */
+      }
       succ += 2;
       ++curDeg;
     }
     /* set inputProbMaxIdx only if the while loop above is executed */
-    if (inputProbMinIdx != (uint32_t)-1)
-      inputProbMaxIdx = curDeg - doneDeg; /* ..MaxIdx is exclusive */
+    if(inputProbMinIdx != (uint32_t)-1) {
+      inputProbMaxIdx = curDeg - doneDeg;  /* ..MaxIdx is exclusive */
+    }
     /* is this the last successor for this iteration and at least
      * one of its siblings will be processed in the next iteration?
      * if so, giveNext = TRUE and later on 'nextProbSum' will be
      * set to 'curProbSum'
      */
     giveNext = ((curDeg - doneDeg == cHmlThreadsPerWarp) && (succ < succMax)) ?
-      TRUE : FALSE;
+               TRUE : FALSE;
     /* done with distributing successors among threads in the same warp */
     //__syncthreads();
     maxTid = MIN(totalDeg - doneDeg, cHmlThreadsPerWarp);
-    if (tid < maxTid)
-      inputProb[tid] = texMap0(*localR[tid]] * (*(float*)(localR[tid] + 1));
+    if(tid < maxTid) {
+      inputProb[tid] = texMap0(*localR[tid]] * (*(float *)(localR[tid] + 1));
+    }
     doneDeg += cHmlThreadsPerWarp;
     //__syncthreads();
     /* PagerankSpmv (possibly partial) reduction */
     /* is there a 'inputProb' that this thread is responsible for adding? */
-    if (inputProbMinIdx != (uint32_t)-1) {
+    if(inputProbMinIdx != (uint32_t)-1) {
       curProbSum = 0.0;
-      while (inputProbMinIdx < inputProbMaxIdx) {
+      while(inputProbMinIdx < inputProbMaxIdx) {
         curProbSum += inputProb[inputProbMinIdx];
         ++inputProbMinIdx;
       }
       curProbSum += prevProbSum;
-      if (!giveNext) /* no need to check validity of 'v' if we are here */
-        map1[v] += dampingFactor * curProbSum; /* reduction completed */
-      else /* store result of partial reduction to a __shared__ variable */
+      if(!giveNext) { /* no need to check validity of 'v' if we are here */
+        map1[v] += dampingFactor * curProbSum;  /* reduction completed */
+      }
+      else { /* store result of partial reduction to a __shared__ variable */
         nextProbSum = curProbSum;
+      }
     }
     //__syncthreads();
   }
@@ -603,8 +611,7 @@ pagerankEven4(uint32_t  *R,
 uint32_t *gR = NULL;
 
 bool
-hmlGraphSortVertexIdxByOutDegComparator(const uint32_t idx1, const uint32_t idx2)
-{
+hmlGraphSortVertexIdxByOutDegComparator(const uint32_t idx1, const uint32_t idx2) {
   return (gR[idx1 + 1] - gR[idx1]) < (gR[idx2 + 1] - gR[idx2]);
 }
 
@@ -614,16 +621,16 @@ hmlGraphSortVertexIdxByOutDegComparator(const uint32_t idx1, const uint32_t idx2
  * increasing out-degree
  */
 void
-hmlGraphSortVertexIdxByOutDeg(HmlGraph *graph, uint32_t *vidArr)
-{
+hmlGraphSortVertexIdxByOutDeg(HmlGraph *graph, uint32_t *vidArr) {
   uint32_t   idx;
   uint32_t  *vidArrEnd;
   uint32_t   numSrcVertices = graph->maxSrcVertex - graph->minSrcVertex + 1;
 
   vidArrEnd = vidArr + numSrcVertices;
   /* init vidArr */
-  for (idx = 0; idx < numSrcVertices; ++idx)
+  for(idx = 0; idx < numSrcVertices; ++idx) {
     vidArr[idx] = idx + graph->minSrcVertex;
+  }
   /* set global variable gR needed by the comparator*/
   gR = graph->R;
   /* perform index sort */

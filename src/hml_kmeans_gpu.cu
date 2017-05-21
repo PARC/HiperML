@@ -16,19 +16,18 @@ texture<float, 1> texData1;
  */
 void
 hmlKmeansGpu(float                  *pCtrds,         /* numDims x numClusts */
-          uint32_t                   *pSizes,         /* numClusts */
-          uint32_t                   *pAsmnts,        /* numRows */
-          float                  *pFinalResidual, /* return final residual */
-          const float            *pRows,          /* numDims x numRows */
-          uint32_t                    numDims,
-          uint32_t                    numRows,
-          uint32_t                    numClusts,
-          uint32_t                    numIters,
-          float                   stopResidual,   /* termination residual */
-          const HmlKmeansKernelRepo   *repo,
-          const HmlKmeansKernelConfig &config,
-          uint32_t              verbosity)
-{
+             uint32_t                   *pSizes,         /* numClusts */
+             uint32_t                   *pAsmnts,        /* numRows */
+             float                  *pFinalResidual, /* return final residual */
+             const float            *pRows,          /* numDims x numRows */
+             uint32_t                    numDims,
+             uint32_t                    numRows,
+             uint32_t                    numClusts,
+             uint32_t                    numIters,
+             float                   stopResidual,   /* termination residual */
+             const HmlKmeansKernelRepo   *repo,
+             const HmlKmeansKernelConfig &config,
+             uint32_t              verbosity) {
   uint32_t     iter;                /* iterations performed so far */
   uint32_t     numUpdateBlocks = cHmlKmeansUpdateBlocks;
   float   *pDevRows;            /* numDims x numRows */
@@ -56,13 +55,13 @@ hmlKmeansGpu(float                  *pCtrds,         /* numDims x numClusts */
   /* check for # of floats (not bytes!) in the dataset,
    * which should not exceed CUDA's maxTexture1DLinear limit
    */
-  if (numDims * numRows > cHmlMaxCudaTexture1DLinear) {
+  if(numDims * numRows > cHmlMaxCudaTexture1DLinear) {
     fprintf(stderr, "CUDA maxTexture1DLinear exceeded\n");
-    exit( EXIT_FAILURE );
+    exit(EXIT_FAILURE);
   }
 
   /* use Forgy method to initialize the cluster means */
-  for (uint32_t k = 0; k < numClusts; ++k) {
+  for(uint32_t k = 0; k < numClusts; ++k) {
     /* random selection may pick the same row twice,
      * which will result in empty cluster(s).
      * Thus, we always pick the first k points
@@ -78,9 +77,9 @@ hmlKmeansGpu(float                  *pCtrds,         /* numDims x numClusts */
   kmeansSelectKernel(&assignKernel, &assignCacheConfig, &assignArg,
                      &updateKernel, &updateCacheConfig, &updateArg,
                      repo, config, numDims, numRows, numClusts);
-  if (!assignKernel || !updateKernel) {
+  if(!assignKernel || !updateKernel) {
     fprintf(stderr, "Error: missing assign or update kernel for #dims = %d\n",
-      numDims);
+            numDims);
     exit(EXIT_FAILURE);
   }
   hmlGetSecs(NULL, &kmeansGpuStartTime);
@@ -111,9 +110,9 @@ hmlKmeansGpu(float                  *pCtrds,         /* numDims x numClusts */
   HANDLE_ERROR(cudaBindTexture(&texOffset, texData1, pDevRows,
                                sizeof(float) * numDims * numRows));
   /* check for non-zero offset */
-  if (texOffset != 0) {
+  if(texOffset != 0) {
     fprintf(stderr, "Error: Texture offset != 0\n");
-    exit( EXIT_FAILURE );
+    exit(EXIT_FAILURE);
   }
 
   /* initialize only the first update block, because assign kernel
@@ -126,17 +125,18 @@ hmlKmeansGpu(float                  *pCtrds,         /* numDims x numClusts */
                           cudaMemcpyHostToDevice));
 
   /* perform numIters iterations, unless residual <= stopResidual */
-  for (iter = 0; iter < numIters; ++iter) {
+  for(iter = 0; iter < numIters; ++iter) {
     HANDLE_ERROR(cudaMemcpy(pDevMeansPrev, pDevMeans,
                             sizeof(float) * numDims * numClusts,
                             cudaMemcpyDeviceToDevice));
-    if (verbosity >= 1)
+    if(verbosity >= 1) {
       hmlGetSecs(NULL, &wallStart);
+    }
 
     assignKernel<<<assignArg.grid, assignArg.block, assignArg.allocBytes>>>
-      (pDevAssign, pDevRows, numRows, pDevMeans, numClusts);
+    (pDevAssign, pDevRows, numRows, pDevMeans, numClusts);
 
-    if (verbosity >= 1) {
+    if(verbosity >= 1) {
       cudaDeviceSynchronize(); //only needed to hmlGetSecs() below
       hmlGetSecs(NULL, &wallEnd);
       totalAssignTime += wallEnd - wallStart;
@@ -157,29 +157,30 @@ hmlKmeansGpu(float                  *pCtrds,         /* numDims x numClusts */
     HANDLE_ERROR(cudaMemset(pDevClusterSize, 0,
                             sizeof(uint32_t) * numClusts *
                             numUpdateBlocks)); /* for parallel update */
-    if (verbosity >= 1)
+    if(verbosity >= 1) {
       hmlGetSecs(NULL, &wallStart);
+    }
 
     updateKernel<<<updateArg.grid, updateArg.block, updateArg.allocBytes>>>
-      (pDevMeans, pDevClusterSize, numClusts, pDevAssign, pDevRows, numRows);
+    (pDevMeans, pDevClusterSize, numClusts, pDevAssign, pDevRows, numRows);
 
     hmlKmeansFinalUpdate<<<numClusts, cHmlThreadsPerWarp, sizeof(float)*numDims>>>
-      (pDevMeans,
-       pDevClusterSize,
-       numDims,
-       numClusts);
+    (pDevMeans,
+     pDevClusterSize,
+     numDims,
+     numClusts);
 
-    if (verbosity >= 1) {
+    if(verbosity >= 1) {
       cudaDeviceSynchronize(); //only needed to hmlGetSecs() below
       hmlGetSecs(NULL, &wallEnd);
       totalUpdateTime += wallEnd - wallStart;
     }
 
     kMeansResidualKernel<<<numClusts, cHmlThreadsPerWarp>>>(pDevResidual,
-                                                         pDevMeans,
-                                                         pDevMeansPrev,
-                                                         numDims,
-                                                         numClusts);
+        pDevMeans,
+        pDevMeansPrev,
+        numDims,
+        numClusts);
 
     /*
     HANDLE_ERROR(cudaMemcpy(pCtrds, pDevMeans,
@@ -198,12 +199,13 @@ hmlKmeansGpu(float                  *pCtrds,         /* numDims x numClusts */
     //        wallEnd - wallStart);
 
     residual = 0.0;
-    for (uint32_t k = 0; k < numClusts; ++k)
+    for(uint32_t k = 0; k < numClusts; ++k) {
       residual = max(residual, pResidual[k]);
+    }
 #ifdef _DEBUG
     fprintf(stderr, "Iteration #%d: residual = %f\n", iter + 1, residual);
 #endif /* _DEBUG */
-    if (residual <= stopResidual) {
+    if(residual <= stopResidual) {
       fprintf(stderr, "\nK-means GPU converged at iteration %d\n", iter + 1);
       break;
     }
@@ -235,12 +237,12 @@ hmlKmeansGpu(float                  *pCtrds,         /* numDims x numClusts */
   FREE(pResidual);
 
   /* convert wall-clock seconds to milliseconds */
-  if (verbosity >= 1) {
+  if(verbosity >= 1) {
     fprintf(stderr, "%10.2lf %10.2lf ", totalAssignTime * 1000.0,
-      totalUpdateTime * 1000.0);
+            totalUpdateTime * 1000.0);
   }
-  if (verbosity <= 1) {
+  if(verbosity <= 1) {
     fprintf(stderr, "%10.2lf\n", (kmeansGpuEndTime -
-      kmeansGpuStartTime) * 1000.0);
+                                  kmeansGpuStartTime) * 1000.0);
   }
 }

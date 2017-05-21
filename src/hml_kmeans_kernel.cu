@@ -7,24 +7,22 @@
 #include "hml_kmeans_kernel_init.h"
 
 void
-hmlKmeansPrintKernelConfig(FILE *file, const HmlKmeansKernelConfig &config)
-{
+hmlKmeansPrintKernelConfig(FILE *file, const HmlKmeansKernelConfig &config) {
   HmlKmeansKernelConfigConstDim::const_iterator it;
 
-  for (size_t d = 0; d < config.size(); ++d) {
-    if (!config[d].empty()) {
-      for (it = config[d].begin(); it != config[d].end(); ++it) {
+  for(size_t d = 0; d < config.size(); ++d) {
+    if(!config[d].empty()) {
+      for(it = config[d].begin(); it != config[d].end(); ++it) {
         fprintf(file, "%ld %d : %d %d %d %d\n", d, it->first,
-          it->second.assignUseTextureMem, it->second.assignOpt,
-          it->second.updateUseTextureMem, it->second.updateOpt);
+                it->second.assignUseTextureMem, it->second.assignOpt,
+                it->second.updateUseTextureMem, it->second.updateOpt);
       }
     }
   }
 }
 
 void
-hmlKmeansReadKernelConfigFile(const char *fileName, HmlKmeansKernelConfig &config)
-{
+hmlKmeansReadKernelConfigFile(const char *fileName, HmlKmeansKernelConfig &config) {
   FILE       *file;
   char        line[cHmlLineBufferSize];
   char       *str;
@@ -35,24 +33,28 @@ hmlKmeansReadKernelConfigFile(const char *fileName, HmlKmeansKernelConfig &confi
   uint32_t      updateOptInt;
 
   file = fopen(fileName, "rb");
-  if (!file) {
+  if(!file) {
     fprintf(stderr, "Cannot open file: %s\n", fileName);
-    exit( EXIT_FAILURE );
+    exit(EXIT_FAILURE);
   }
-  while (!feof(file)) {
-    while (true) {
+  while(!feof(file)) {
+    while(true) {
       str = fgets(line, cHmlLineBufferSize, file);
-      if (!str || *str != '#')
+      if(!str || *str != '#') {
         break;
+      }
     }
-    if (!str) break;
+    if(!str) {
+      break;
+    }
     sscanf(str, "%d %d : %d %d %d %d\n", &numDims, &numClusts,
            (int *)&opt.assignUseTextureMem, &assignOptInt,
            (int *)&opt.updateUseTextureMem, &updateOptInt);
     opt.assignOpt = (HmlKmeansAssignKernelOption)assignOptInt;
     opt.updateOpt = (HmlKmeansUpdateKernelOption)updateOptInt;
-    if (config.size() < numDims + 1)
+    if(config.size() < numDims + 1) {
       config.resize(numDims + 1);
+    }
     config[numDims][numClusts] = opt;
   }
   fclose(file);
@@ -65,10 +67,9 @@ hmlKmeansReadKernelConfigFile(const char *fileName, HmlKmeansKernelConfig &confi
  */
 __global__ void
 hmlKmeansFinalUpdate(float *pCtrds,   /* numDims x numClusts x numBlocks */
-                  uint32_t  *pSizes,   /* numClusts x numBlocks */
-                  uint32_t   numDims,
-                  uint32_t   numClusts)
-{
+                     uint32_t  *pSizes,   /* numClusts x numBlocks */
+                     uint32_t   numDims,
+                     uint32_t   numClusts) {
   const uint32_t    tid = threadIdx.x;
   const uint32_t    kid = blockIdx.x;   /* cluster id assigned to the block */
   uint32_t    dim;
@@ -79,27 +80,29 @@ hmlKmeansFinalUpdate(float *pCtrds,   /* numDims x numClusts x numBlocks */
 
   size[tid] = 0;
   blk = tid;
-  while (blk < cHmlKmeansUpdateBlocks) {
+  while(blk < cHmlKmeansUpdateBlocks) {
     idx = kid + numClusts * blk;
     size[tid] += pSizes[idx];
     blk += blockDim.x;
   }
   //__syncthreads();
-  for (uint32_t numReducers = blockDim.x / 2; numReducers > 0; numReducers /= 2) {
-    if (tid < numReducers)
+  for(uint32_t numReducers = blockDim.x / 2; numReducers > 0; numReducers /= 2) {
+    if(tid < numReducers) {
       size[tid] += size[tid + numReducers];
+    }
     //__syncthreads();
   }
   /* write final result to the first update block */
-  if (tid == 0)
+  if(tid == 0) {
     pSizes[kid] = size[0];
+  }
   //__syncthreads();
   /* sum along each dim for all points in the same cluster */
   dim = tid;
-  while (dim < numDims) {
+  while(dim < numDims) {
     mean[dim] = 0.0;
     idx = dim + numDims * kid;
-    for (uint32_t b = 0; b < cHmlKmeansUpdateBlocks; ++b) {
+    for(uint32_t b = 0; b < cHmlKmeansUpdateBlocks; ++b) {
       mean[dim] += pCtrds[idx];
       idx += numDims * numClusts;
     }
@@ -113,23 +116,23 @@ void
 calcGridDim(dim3  *pGrid,
             uint32_t numBlocks,
             uint32_t gridDimXMin,
-            uint32_t gridDimXMax)
-{
+            uint32_t gridDimXMax) {
   uint32_t gridDimX;
   uint32_t gridDimY;
 
-  if (gridDimXMax > cHmlMaxGridDimX) {
+  if(gridDimXMax > cHmlMaxGridDimX) {
     fprintf(stderr, "Err: gridDimXMax = %d > cHmlMaxGridDimX = %d\n",
             gridDimXMax, cHmlMaxGridDimX);
     exit(EXIT_FAILURE);
   }
   /* double gridDimX until gridDimY is no more than cHmlMaxGridDimY */
-  for (gridDimX = gridDimXMin; gridDimX <= gridDimXMax; gridDimX *= 2) {
+  for(gridDimX = gridDimXMin; gridDimX <= gridDimXMax; gridDimX *= 2) {
     gridDimY = (numBlocks + gridDimX - 1) / gridDimX;
-    if (gridDimY <= cHmlMaxGridDimY)
+    if(gridDimY <= cHmlMaxGridDimY) {
       break;
+    }
   }
-  if (gridDimX > gridDimXMax) {
+  if(gridDimX > gridDimXMax) {
     fprintf(stderr, "Err: gridDimX > gridDimXMax\n");
     exit(EXIT_FAILURE);
   }
@@ -146,8 +149,7 @@ kMeansResidualKernel(float       *pResidual,  /* numClusts */
                      const float *pCtrds,     /* numDims x numClusts */
                      const float *pCtrdsPrev, /* numDims x numClusts */
                      uint32_t         numDims,
-                     uint32_t         numClusts)
-{
+                     uint32_t         numClusts) {
   const uint32_t  tid = threadIdx.x;
   const uint32_t  bid = blockIdx.x;  /* 1 block per cluster */
   uint32_t  dim;
@@ -155,11 +157,11 @@ kMeansResidualKernel(float       *pResidual,  /* numClusts */
   __shared__ float residual[cHmlThreadsPerWarp];
 
   residual[tid] = 0.0;
-  if (bid < numClusts) {
+  if(bid < numClusts) {
     pCtrds += numDims * bid;
     pCtrdsPrev += numDims * bid;
     dim = tid;
-    while (dim < numDims) {
+    while(dim < numDims) {
       delta = fabs(pCtrds[dim] - pCtrdsPrev[dim]);
       //printf("bid = %d, dim = %d: |%f - %f| = %f\n", bid, dim,
       //  pCtrds[dim], pCtrdsPrev[dim], delta);
@@ -168,18 +170,19 @@ kMeansResidualKernel(float       *pResidual,  /* numClusts */
     }
   }
   //__syncthreads();
-  for (int numReducers = blockDim.x / 2; numReducers > 0; numReducers /= 2) {
-    if (tid < numReducers)
+  for(int numReducers = blockDim.x / 2; numReducers > 0; numReducers /= 2) {
+    if(tid < numReducers) {
       residual[tid] = max(residual[tid], residual[tid + numReducers]);
+    }
     //__syncthreads();
   }
-  if (tid == 0 && bid < numClusts)
+  if(tid == 0 && bid < numClusts) {
     pResidual[bid] = residual[0];
+  }
 }
 
 void
-hmlKmeansInitKernelRepo(HmlKmeansKernelRepo *repo)
-{
+hmlKmeansInitKernelRepo(HmlKmeansKernelRepo *repo) {
   /* init kernels that do not use texture memory */
   hmlKmeansInitKernelAssignGmem(repo->assignGmem);
   hmlKmeansInitKernelAssignSmem(repo->assignSmem);
@@ -199,8 +202,7 @@ void
 setKmeansAssignGmemArg(HmlKernelArg *kernelArg,
                        uint32_t     numDims,
                        uint32_t     numRows,
-                       uint32_t     numClusts)
-{
+                       uint32_t     numClusts) {
   kernelArg->block.x = kernelArg->block.y = 16;
   kernelArg->block.z = 1;
   uint32_t numThreadsPerBlock = kernelArg->block.x * kernelArg->block.y;
@@ -212,8 +214,7 @@ setKmeansAssignGmemArg(HmlKernelArg *kernelArg,
 void
 setKmeansAssignSmemArg(HmlKernelArg *kernelArg,
                        uint32_t     numDims,
-                       uint32_t     numClusts)
-{
+                       uint32_t     numClusts) {
   kernelArg->block.x = 256; /* better than 32x32 block size */
   kernelArg->block.y = 1;
   kernelArg->block.z = 1;
@@ -225,8 +226,7 @@ setKmeansAssignSmemArg(HmlKernelArg *kernelArg,
 void
 setKmeansAssignSmemUnrollArg(HmlKernelArg *kernelArg,
                              uint32_t     numDims,
-                             uint32_t     numClusts)
-{
+                             uint32_t     numClusts) {
   kernelArg->block.x = 256; /* better than 32x32 block size */
   kernelArg->block.y = 1;
   kernelArg->block.z = 1;
@@ -239,8 +239,7 @@ setKmeansAssignSmemUnrollArg(HmlKernelArg *kernelArg,
 }
 
 void
-hmlKmeansSetUpdateGmemArg(HmlKernelArg *kernelArg)
-{
+hmlKmeansSetUpdateGmemArg(HmlKernelArg *kernelArg) {
   kernelArg->block.x = cHmlThreadsPerWarp;
   kernelArg->block.y = kernelArg->block.z = 1;
   kernelArg->grid.x = cHmlKmeansUpdateBlocks;
@@ -250,15 +249,14 @@ hmlKmeansSetUpdateGmemArg(HmlKernelArg *kernelArg)
 
 void
 hmlKmeansSetUpdateSmemArg(HmlKernelArg *kernelArg,
-                       uint32_t     numDims,
-                       uint32_t     numClusts)
-{
+                          uint32_t     numDims,
+                          uint32_t     numClusts) {
   kernelArg->block.x = cHmlThreadsPerWarp;
   kernelArg->block.y = kernelArg->block.z = 1;
   kernelArg->grid.x = cHmlKmeansUpdateBlocks;
   kernelArg->grid.y = kernelArg->grid.z = 1;
   kernelArg->allocBytes = sizeof(uint32_t) * numClusts +
-    sizeof(float) * numDims * numClusts;
+                          sizeof(float) * numDims * numClusts;
 }
 
 void
@@ -272,53 +270,52 @@ kmeansSelectKernel(HmlKmeansAssignKernel       *assignKernel,
                    const HmlKmeansKernelConfig &config,
                    uint32_t                    numDims,
                    uint32_t                    numRows,
-                   uint32_t                    numClusts)
-{
+                   uint32_t                    numClusts) {
   HmlKmeansKernelConfigConstDim::const_iterator it;
 
   *assignKernel = NULL;
   *updateKernel = NULL;
-  if (config[numDims].empty()) {
+  if(config[numDims].empty()) {
     fprintf(stderr, "Error: missing kernel configuration for #dims = %d\n",
-      numDims);
+            numDims);
     exit(EXIT_FAILURE);
   }
-  for (it = config[numDims].begin(); it != config[numDims].end(); ++it) {
-    if (it->first == numClusts) {
-      switch (it->second.assignOpt) {
+  for(it = config[numDims].begin(); it != config[numDims].end(); ++it) {
+    if(it->first == numClusts) {
+      switch(it->second.assignOpt) {
       case eHmlKmeansAssignGlobalMem:
         *assignKernel = (it->second.assignUseTextureMem) ?
-          repo->assignGmemTex[numDims] : repo->assignGmem[numDims];
+                        repo->assignGmemTex[numDims] : repo->assignGmem[numDims];
         *assignCacheConfig = cudaFuncCachePreferL1;
         setKmeansAssignGmemArg(assignArg, numDims, numRows, numClusts);
         //fprintf(stderr, "Info: eHmlKmeansAssignGlobalMem\n");
         break;
       case eHmlKmeansAssignSharedMem:
         *assignKernel = (it->second.assignUseTextureMem) ?
-          repo->assignSmemTex[numDims] : repo->assignSmem[numDims];
+                        repo->assignSmemTex[numDims] : repo->assignSmem[numDims];
         *assignCacheConfig = cudaFuncCachePreferShared;
         setKmeansAssignSmemArg(assignArg, numDims, numClusts);
         //fprintf(stderr, "Info: eHmlKmeansAssignSharedMem\n");
         break;
       case eHmlKmeansAssignSharedMemUnroll:
         *assignKernel = (it->second.assignUseTextureMem) ?
-          repo->assignSmemUnrollTex[numDims] : repo->assignSmemUnroll[numDims];
+                        repo->assignSmemUnrollTex[numDims] : repo->assignSmemUnroll[numDims];
         *assignCacheConfig = cudaFuncCachePreferShared;
         setKmeansAssignSmemUnrollArg(assignArg, numDims, numClusts);
         //fprintf(stderr, "Info: eHmlKmeansAssignSharedMemUnroll\n");
         break;
       }
-      switch (it->second.updateOpt) {
+      switch(it->second.updateOpt) {
       case eHmlKmeansUpdateGlobalMem:
         *updateKernel = (it->second.updateUseTextureMem) ?
-          repo->updateGmemTex[numDims] : repo->updateGmem[numDims];
+                        repo->updateGmemTex[numDims] : repo->updateGmem[numDims];
         *updateCacheConfig = cudaFuncCachePreferL1;
         hmlKmeansSetUpdateGmemArg(updateArg);
         //fprintf(stderr, "Info: eHmlKmeansUpdateGlobalMem\n");
         break;
       case eHmlKmeansUpdateSharedMem:
         *updateKernel = (it->second.updateUseTextureMem) ?
-          repo->updateSmemTex[numDims] : repo->updateSmem[numDims];
+                        repo->updateSmemTex[numDims] : repo->updateSmem[numDims];
         *updateCacheConfig = cudaFuncCachePreferShared;
         hmlKmeansSetUpdateSmemArg(updateArg, numDims, numClusts);
         //fprintf(stderr, "Info: eHmlKmeansUpdateSharedMem\n");

@@ -53,24 +53,24 @@ HmlErrCode hmlGetTime(HmlTime *time);
 /* return a randomly generated float */
 float hmlRandomFloat();
 
-FILE* openFile(const char *filename, const char *mode);
+FILE *openFile(const char *filename, const char *mode);
 
 void hmlHandleError(cudaError_t err, const char *file, int line);
 
 int hmlMaxNumRegistersPerThread(const cudaDeviceProp *prop);
 
-uint32_t* hmlDeviceUint32ArrayAllocBind(int                numElems,
+uint32_t *hmlDeviceUint32ArrayAllocBind(int                numElems,
                                         texture<uint32_t, 1> &texFloatArr);
 
-float* hmlDeviceFloatArrayAlloc(int numElems);
+float *hmlDeviceFloatArrayAlloc(int numElems);
 
-float* hmlDeviceFloatArrayAllocLoad(const float       *hostArr,
+float *hmlDeviceFloatArrayAllocLoad(const float       *hostArr,
                                     int                numElems);
 
-float* hmlDeviceFloatArrayAllocBind(int                numElems,
+float *hmlDeviceFloatArrayAllocBind(int                numElems,
                                     texture<float, 1> &texFloatArr);
 
-float* hmlDeviceFloatArrayAllocLoadBind(const float       *hostArr,
+float *hmlDeviceFloatArrayAllocLoadBind(const float       *hostArr,
                                         int                numElems,
                                         texture<float, 1> &texFloatArr);
 

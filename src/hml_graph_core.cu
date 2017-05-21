@@ -16,8 +16,7 @@
 #define cHmlGraphCoreESizeInit        1024
 
 void
-hmlGraphAppendEdgeMemInit(HmlGraphAppendEdgeState *appState)
-{
+hmlGraphAppendEdgeMemInit(HmlGraphAppendEdgeState *appState) {
   MALLOC(appState->E, uint32_t, appState->allocSizeofE);
   appState->e = appState->E;
   appState->endofE = &appState->E[appState->allocSizeofE];
@@ -26,8 +25,7 @@ hmlGraphAppendEdgeMemInit(HmlGraphAppendEdgeState *appState)
   appState->endofR = &appState->R[appState->allocSizeofR];
 }
 
-void hmlGraphAppendEdgeInit(HmlGraph *graph, HmlGraphAppendEdgeState *appState)
-{
+void hmlGraphAppendEdgeInit(HmlGraph *graph, HmlGraphAppendEdgeState *appState) {
   appState->cmd = eAppendRegularEdge;
   appState->numEdges = 0;
   appState->sizeofR = 0;
@@ -48,8 +46,7 @@ void
 hmlGraphAppendEdge(uint32_t           srcVertex,
                    uint32_t           edgeId,
                    uint32_t           destVertex,
-                   HmlGraphAppendEdgeState *appState)
-{
+                   HmlGraphAppendEdgeState *appState) {
   appState->minDestVertex = min(appState->minDestVertex, destVertex);
   appState->maxDestVertex = max(appState->maxDestVertex, destVertex);
   /* make sure there is enough room in E.
@@ -57,30 +54,30 @@ hmlGraphAppendEdge(uint32_t           srcVertex,
    *   1st word: a 32-bit unsigned integer to store 'destVertex'
    *   2nd word: a 32-bit unsigned integer to store 'edgeId'
    */
-  if (appState->e + 1 >= appState->endofE) {
+  if(appState->e + 1 >= appState->endofE) {
     appState->allocSizeofE *= 2;
     REALLOC(appState->E, uint32_t, appState->allocSizeofE);
     appState->endofE = &appState->E[appState->allocSizeofE];
     appState->e = &appState->E[appState->sizeofE];
   }
-  if (srcVertex != appState->prevSrcVertex) {
+  if(srcVertex != appState->prevSrcVertex) {
     appState->minSrcVertex = min(appState->minSrcVertex, srcVertex);
     appState->maxSrcVertex = max(appState->maxSrcVertex, srcVertex);
     ++appState->prevSrcVertex;
     /* need extra slot for the dummy last element of R */
-    if (appState->r + (srcVertex - appState->prevSrcVertex + 1) >=
+    if(appState->r + (srcVertex - appState->prevSrcVertex + 1) >=
         appState->endofR) {
       appState->allocSizeofR *= 2;
       appState->allocSizeofR =
         max(appState->allocSizeofR,
             (uint64_t)(appState->r + (srcVertex - appState->prevSrcVertex + 2)
-                     - appState->R));
+                       - appState->R));
       REALLOC(appState->R, uint32_t, appState->allocSizeofR);
       appState->endofR = &appState->R[appState->allocSizeofR];
       appState->r = &appState->R[appState->sizeofR];
     }
-    if (srcVertex > appState->prevSrcVertex) {
-      for (; appState->prevSrcVertex < srcVertex; ++appState->prevSrcVertex) {
+    if(srcVertex > appState->prevSrcVertex) {
+      for(; appState->prevSrcVertex < srcVertex; ++appState->prevSrcVertex) {
         /* fill in dummy entry for each missing srcVertex */
         *appState->r++ = (uint32_t)(appState->e - appState->E);
         ++appState->sizeofR;
@@ -99,8 +96,7 @@ hmlGraphAppendEdge(uint32_t           srcVertex,
   ++appState->numEdges;
 }
 
-void hmlGraphAppendEdgeFinal(HmlGraph *graph, HmlGraphAppendEdgeState *appState)
-{
+void hmlGraphAppendEdgeFinal(HmlGraph *graph, HmlGraphAppendEdgeState *appState) {
   *appState->r = (uint32_t)(appState->e - appState->E);
   ++appState->sizeofR;
   REALLOC(appState->R, uint32_t, appState->sizeofR);
@@ -117,8 +113,7 @@ void hmlGraphAppendEdgeFinal(HmlGraph *graph, HmlGraphAppendEdgeState *appState)
 }
 
 void
-hmlGraphReadTsv4(char *filename, bool sortedBySubject, HmlGraph *graph)
-{
+hmlGraphReadTsv4(char *filename, bool sortedBySubject, HmlGraph *graph) {
   FILE                         *file;
   char                          line[cHmlLineBufferSize];
   char                         *str;
@@ -131,126 +126,132 @@ hmlGraphReadTsv4(char *filename, bool sortedBySubject, HmlGraph *graph)
   HmlGraphAppendEdgeState           *appState = &appStateVal;
 
   file = fopen(filename, "rb");
-  if (!file) {
+  if(!file) {
     fprintf(stderr, "; Error: Cannot open file: %s\n", filename);
-    exit( EXIT_FAILURE );
+    exit(EXIT_FAILURE);
   }
   hmlGraphAppendEdgeInit(graph, appState);
-  for (;;)
-    {
-      /* Go get the next <srcVertex, edgeType, edgeId, destVertex> quadruple
-       * if it exists.
-       */
-      str = fgets(line, cHmlLineBufferSize, file);
-      if (!str)
-        break;
-      /* are quadruples sorted by subject? */
-      if (sortedBySubject)
-        {
-          /* the four while loops below achieve the same
-           * function as:
-           * fscanf(file, "%u %u %u %u\n",
-           *   &srcVertex, &edgeType, &edgeId, &destVertex);
-           */
-          srcVertex = 0;
-          while ((charInt = (uint32_t)*str++) != ' ')
-            srcVertex = srcVertex * 10 + charInt - '0';
-          edgeType = 0;
-          while ((charInt = (uint32_t)*str++) != ' ')
-            edgeType = edgeType * 10 + charInt - '0';
-          edgeId = 0;
-          while ((charInt = (uint32_t)*str++) != ' ')
-            edgeId = edgeId * 10 + charInt - '0';
-          /* we could compute the inverse of number of successors:
-           *   oneOverEdgeId = (float) 1.0 / (float) edgeId;
-           * and then pretend edgeId is a uint32_t, as follows:
-           *   *((float*)&edgeId) = oneOverEdgeId;
-           * but currently we don't do these tricks, because
-           * 1. it doesn't improve speed
-           * 2. it complicates the code
-           */
-          destVertex = 0;
-          while ((charInt = (uint32_t)*str++) != '\n')
-            destVertex = destVertex * 10 + charInt - '0';
-        }
-      else /* if not by subject, they must be sorted by object */
-        {
-          /* the four while loops below achieve the same
-           * function as:
-           * fscanf(file, "%u %u %u %u\n",
-           *   &destVertex, &edgeType, &edgeId, &srcVertex);
-           */
-          destVertex = 0;
-          while ((charInt = (uint32_t)*str++) != ' ')
-            destVertex = destVertex * 10 + charInt - '0';
-          edgeType = 0;
-          while ((charInt = (uint32_t)*str++) != ' ')
-            edgeType = edgeType * 10 + charInt - '0';
-          edgeId = 0;
-          while ((charInt = (uint32_t)*str++) != ' ')
-            edgeId = edgeId * 10 + charInt - '0';
-          /* we could compute the inverse of number of successors:
-           *   oneOverEdgeId = (float) 1.0 / (float) edgeId;
-           * and then pretend edgeId is a uint32_t, as follows:
-           *   *((float*)&edgeId) = oneOverEdgeId;
-           * but currently we don't do these tricks, because:
-           * 1. it doesn't improve speed
-           * 2. it complicates the code
-           */
-          srcVertex = 0;
-          while ((charInt = (uint32_t)*str++) != '\n')
-            srcVertex = srcVertex * 10 + charInt - '0';
-        }
-      hmlGraphAppendEdge(srcVertex, edgeId, destVertex, appState);
-      if (feof(file))
-        break;
+  for(;;) {
+    /* Go get the next <srcVertex, edgeType, edgeId, destVertex> quadruple
+     * if it exists.
+     */
+    str = fgets(line, cHmlLineBufferSize, file);
+    if(!str) {
+      break;
     }
+    /* are quadruples sorted by subject? */
+    if(sortedBySubject) {
+      /* the four while loops below achieve the same
+       * function as:
+       * fscanf(file, "%u %u %u %u\n",
+       *   &srcVertex, &edgeType, &edgeId, &destVertex);
+       */
+      srcVertex = 0;
+      while((charInt = (uint32_t)*str++) != ' ') {
+        srcVertex = srcVertex * 10 + charInt - '0';
+      }
+      edgeType = 0;
+      while((charInt = (uint32_t)*str++) != ' ') {
+        edgeType = edgeType * 10 + charInt - '0';
+      }
+      edgeId = 0;
+      while((charInt = (uint32_t)*str++) != ' ') {
+        edgeId = edgeId * 10 + charInt - '0';
+      }
+      /* we could compute the inverse of number of successors:
+       *   oneOverEdgeId = (float) 1.0 / (float) edgeId;
+       * and then pretend edgeId is a uint32_t, as follows:
+       *   *((float*)&edgeId) = oneOverEdgeId;
+       * but currently we don't do these tricks, because
+       * 1. it doesn't improve speed
+       * 2. it complicates the code
+       */
+      destVertex = 0;
+      while((charInt = (uint32_t)*str++) != '\n') {
+        destVertex = destVertex * 10 + charInt - '0';
+      }
+    }
+    else { /* if not by subject, they must be sorted by object */
+      /* the four while loops below achieve the same
+       * function as:
+       * fscanf(file, "%u %u %u %u\n",
+       *   &destVertex, &edgeType, &edgeId, &srcVertex);
+       */
+      destVertex = 0;
+      while((charInt = (uint32_t)*str++) != ' ') {
+        destVertex = destVertex * 10 + charInt - '0';
+      }
+      edgeType = 0;
+      while((charInt = (uint32_t)*str++) != ' ') {
+        edgeType = edgeType * 10 + charInt - '0';
+      }
+      edgeId = 0;
+      while((charInt = (uint32_t)*str++) != ' ') {
+        edgeId = edgeId * 10 + charInt - '0';
+      }
+      /* we could compute the inverse of number of successors:
+       *   oneOverEdgeId = (float) 1.0 / (float) edgeId;
+       * and then pretend edgeId is a uint32_t, as follows:
+       *   *((float*)&edgeId) = oneOverEdgeId;
+       * but currently we don't do these tricks, because:
+       * 1. it doesn't improve speed
+       * 2. it complicates the code
+       */
+      srcVertex = 0;
+      while((charInt = (uint32_t)*str++) != '\n') {
+        srcVertex = srcVertex * 10 + charInt - '0';
+      }
+    }
+    hmlGraphAppendEdge(srcVertex, edgeId, destVertex, appState);
+    if(feof(file)) {
+      break;
+    }
+  }
   hmlGraphAppendEdgeFinal(graph, appState);
 }
 
 void
-hmlGraphPrintEdges(FILE *file, HmlGraph *graph, bool sortedBySubject)
-{
+hmlGraphPrintEdges(FILE *file, HmlGraph *graph, bool sortedBySubject) {
   uint32_t  vid;
   uint32_t *succ;
   uint32_t *succMax;
   uint32_t *R = graph->R;
   uint32_t *E = graph->E;
 
-  for (vid = graph->minSrcVertex; vid <= graph->maxSrcVertex; ++vid) {
+  for(vid = graph->minSrcVertex; vid <= graph->maxSrcVertex; ++vid) {
     succ = &E[R[vid]];
     succMax = &E[R[vid + 1]];
-    while (succ < succMax) {
-      if (sortedBySubject)
+    while(succ < succMax) {
+      if(sortedBySubject) {
         fprintf(file, "%d 0 %d %d\n", vid, succ[1], succ[0]);
-      else
+      }
+      else {
         fprintf(file, "%d 0 %d %d\n", succ[0], succ[1], vid);
+      }
       succ += 2;
     }
   }
 }
 
 void
-hmlGraphPrintStats(FILE *file, HmlGraph *graph)
-{
-    size_t byteSizeofR = graph->sizeofR * sizeof(uint32_t);
-    size_t byteSizeofE = graph->sizeofE * sizeof(uint32_t);
-    size_t byteSizeofGraph = byteSizeofR + byteSizeofE;
+hmlGraphPrintStats(FILE *file, HmlGraph *graph) {
+  size_t byteSizeofR = graph->sizeofR * sizeof(uint32_t);
+  size_t byteSizeofE = graph->sizeofE * sizeof(uint32_t);
+  size_t byteSizeofGraph = byteSizeofR + byteSizeofE;
 
-    fprintf(file, "min_source_vertex_id=%d\n", graph->minSrcVertex);
-    fprintf(file, "max_source_vertex_id=%d\n", graph->maxSrcVertex);
-    fprintf(file, "min_destination_vertex_id=%d\n", graph->minDestVertex);
-    fprintf(file, "max_destination_vertex_id=%d\n", graph->maxDestVertex);
-    fprintf(file, "num_edges=%ld\n", graph->numEdges);
-    fprintf(file, "bytes_of_edge_list=%ld\n", byteSizeofR);
-    fprintf(file, "bytes_of_edge_index=%ld\n", byteSizeofE);
-    fprintf(file, "; total graph size = %.2lf (MB)\n",
-            (double)byteSizeofGraph / (1024 * 1024));
+  fprintf(file, "min_source_vertex_id=%d\n", graph->minSrcVertex);
+  fprintf(file, "max_source_vertex_id=%d\n", graph->maxSrcVertex);
+  fprintf(file, "min_destination_vertex_id=%d\n", graph->minDestVertex);
+  fprintf(file, "max_destination_vertex_id=%d\n", graph->maxDestVertex);
+  fprintf(file, "num_edges=%ld\n", graph->numEdges);
+  fprintf(file, "bytes_of_edge_list=%ld\n", byteSizeofR);
+  fprintf(file, "bytes_of_edge_index=%ld\n", byteSizeofE);
+  fprintf(file, "; total graph size = %.2lf (MB)\n",
+          (double)byteSizeofGraph / (1024 * 1024));
 }
 
 HmlErrCode
-hmlGraphCoreCopyToGpu(HmlGraphCore *core, HmlGraphCore *gpuCore)
-{
+hmlGraphCoreCopyToGpu(HmlGraphCore *core, HmlGraphCore *gpuCore) {
   HML_ERR_PROLOGUE;
 
   /* since we don't copy the D[] array, better make sure it is null */
@@ -281,8 +282,7 @@ hmlGraphCoreCopyToGpu(HmlGraphCore *core, HmlGraphCore *gpuCore)
 }
 
 HmlErrCode
-hmlGraphCoreGpuDelete(HmlGraphCore *core)
-{
+hmlGraphCoreGpuDelete(HmlGraphCore *core) {
   HML_ERR_PROLOGUE;
   HML_ERR_GEN(core->D && core->D + core->minMinSrcVertex != core->D0,
               cHmlErrGeneral);
@@ -399,8 +399,7 @@ hmlGraphCoreAddEdge(HmlGraphCore *core,
 }
 
 void
-hmlGraphCorePrintStats(HmlGraphCore *core, FILE *file)
-{
+hmlGraphCorePrintStats(HmlGraphCore *core, FILE *file) {
   size_t byteSizeofR = core->maxNumSrcVertices * sizeof(core->R[0]);
   size_t byteSizeofE = core->numEdges * sizeof(core->E[0]);
   size_t byteSizeofGraph = byteSizeofR + byteSizeofE;
@@ -419,17 +418,17 @@ hmlGraphCorePrintStats(HmlGraphCore *core, FILE *file)
 HmlErrCode
 hmlGraphCoreAppendInit(HmlGraphCore            *core,
                        HmlGraphCoreAppendState *state) {
-    memset(core, 0, sizeof(HmlGraphCore));
-    memset(state, 0, sizeof(HmlGraphCoreAppendState));
-    state->prevSrcVertex = cHmlGraphCoreInvalidVertex;
-    MALLOC(core->R0, uint32_t, cHmlGraphCoreRSizeInit);
-    MALLOC(core->E, uint32_t, cHmlGraphCoreESizeInit);
-    core->minSrcVertex = (uint32_t)-1;
-    core->minDestVertex = (uint32_t)-1;
-    core->minOutDegree = (uint32_t)-1;
-    core->maxNumSrcVertices = cHmlGraphCoreRSizeInit;
-    core->numEdges = cHmlGraphCoreESizeInit;
-    return cHmlErrSuccess;
+  memset(core, 0, sizeof(HmlGraphCore));
+  memset(state, 0, sizeof(HmlGraphCoreAppendState));
+  state->prevSrcVertex = cHmlGraphCoreInvalidVertex;
+  MALLOC(core->R0, uint32_t, cHmlGraphCoreRSizeInit);
+  MALLOC(core->E, uint32_t, cHmlGraphCoreESizeInit);
+  core->minSrcVertex = (uint32_t)-1;
+  core->minDestVertex = (uint32_t)-1;
+  core->minOutDegree = (uint32_t)-1;
+  core->maxNumSrcVertices = cHmlGraphCoreRSizeInit;
+  core->numEdges = cHmlGraphCoreESizeInit;
+  return cHmlErrSuccess;
 }
 
 HmlErrCode
@@ -451,7 +450,7 @@ hmlGraphCoreAppend(HmlGraphCore            *core,
   }
   if(srcVertex - core->minMinSrcVertex >= core->maxNumSrcVertices) {
     uint32_t newRSize = max(core->maxNumSrcVertices * 2,
-                          srcVertex - core->minMinSrcVertex + 1);
+                            srcVertex - core->minMinSrcVertex + 1);
     REALLOC(core->R0, uint32_t, newRSize);
     core->maxNumSrcVertices = newRSize;
     core->R = core->R0 - core->minMinSrcVertex;
@@ -488,7 +487,8 @@ hmlGraphCoreAppendFinal(HmlGraphCore            *core,
   core->R[core->maxSrcVertex + 1] = state->numEdgesSoFar;
   if(state->numEdgesSoFar) {  /* make sure there is at least one edge */
     REALLOC(core->E, uint32_t, state->numEdgesSoFar);
-  } else {
+  }
+  else {
     FREE(core->E);
   }
   core->numEdges = state->numEdgesSoFar;
@@ -625,7 +625,8 @@ hmlGraphCoreVertexPartition(HmlGraphCore const *core,
     outDegree = core->R[vertex + 1] - core->R[vertex];
     if(numEdges + outDegree <= maxNumEdgesPerPartition) {
       numEdges += outDegree;
-    } else {
+    }
+    else {
       HML_ERR_PASS(hmlVertexPartitionAddEntry(vertexPartition, vertex - 1,
                                               numEdges));
       numEdges = outDegree;
@@ -755,8 +756,8 @@ hmlGraphCoreWriteBinaryFile(HmlGraphCore const *core,
 
 HmlErrCode
 hmlGraphCoreDefaultInsertIniter(HmlGraphCore *core, void *insertState) {
-    (void)insertState;  /* avoid warning */
-    return hmlGraphCoreAddEdgeInit(core);
+  (void)insertState;  /* avoid warning */
+  return hmlGraphCoreAddEdgeInit(core);
 }
 
 /* this function only applies to bi-directional graph that is succinctly
@@ -800,23 +801,25 @@ hmlGraphCoreInsertFromSrc(HmlGraphCore               *core,
                           HmlGraphCoreInserter        inserter,
                           HmlGraphCoreInsertFinalizer finalizer,
                           void                       *insertState) {
-    HML_ERR_PROLOGUE;
-    uint32_t  v;
-    uint32_t *R = src->R;
-    uint32_t *E = src->E;
-    uint32_t *e;
+  HML_ERR_PROLOGUE;
+  uint32_t  v;
+  uint32_t *R = src->R;
+  uint32_t *E = src->E;
+  uint32_t *e;
 
-    if(initer)
-        HML_ERR_PASS(initer(core, insertState));
-    for(v = src->minSrcVertex; v <= src->maxSrcVertex; v++) {
-        for(e = &E[R[v]]; e < &E[R[v + 1]]; e++) {
-            HML_ERR_PASS(inserter(core, insertState, v, *e));
-        }
+  if(initer) {
+    HML_ERR_PASS(initer(core, insertState));
+  }
+  for(v = src->minSrcVertex; v <= src->maxSrcVertex; v++) {
+    for(e = &E[R[v]]; e < &E[R[v + 1]]; e++) {
+      HML_ERR_PASS(inserter(core, insertState, v, *e));
     }
-    if(finalizer)
-        HML_ERR_PASS(finalizer(core, insertState));
+  }
+  if(finalizer) {
+    HML_ERR_PASS(finalizer(core, insertState));
+  }
 
-    HML_NORMAL_RETURN;
+  HML_NORMAL_RETURN;
 }
 
 /* count the degree by only allowing edge (u, v) \in E iff
@@ -850,7 +853,8 @@ hmlGraphCoreCountDegreeIfSmallerP(HmlGraphCore const *core,
       HML_ERR_GEN(vP == eP, cHmlErrGeneral);
       if(vP < eP) {
         D[vP]++;
-      } else {
+      }
+      else {
         D[eP]++;
       }
     }
@@ -885,7 +889,7 @@ hmlGraphCoreRunParaFunc(HmlGraphCore          *core,
 
   maxNumEdgesPerPartition += core->maxOutDegree;
   HML_ERR_PASS(hmlGraphCoreVertexPartition(core,
-                       maxNumEdgesPerPartition, &vertexPartition));
+               maxNumEdgesPerPartition, &vertexPartition));
   HML_ERR_PASS(hmlThreadGroupInit(&threads, numThreads));
   threadArgs.core      = core;
   threadArgs.partition = &vertexPartition;
@@ -954,7 +958,8 @@ hmlGraphCoreSortEdges(HmlGraphCore *core, uint32_t numThreads) {
     for(v = core->minSrcVertex; v <= core->maxSrcVertex; v++) {
       qsort(&E[R[v]], R[v + 1] - R[v], sizeof(uint32_t), hmlGraphCoreVertexCompare);
     }
-  } else {
+  }
+  else {
     HML_ERR_PASS(hmlGraphCoreRunParaFunc(core, hmlGraphCoreSortFunc, NULL,
                                          numThreads));
   }
@@ -974,9 +979,10 @@ hmlGraphCoreSortEdgesByPartition(HmlGraphCore       *core,
     for(v = core->minSrcVertex; v <= core->maxSrcVertex; v++) {
       qsort(&E[R[v]], R[v + 1] - R[v], sizeof(uint32_t), hmlGraphCoreVertexCompare);
     }
-  } else {
+  }
+  else {
     HML_ERR_PASS(hmlGraphCoreRunParaFuncByPartition(core, hmlGraphCoreSortFunc,
-                                                    NULL, partition));
+                 NULL, partition));
   }
 
   HML_NORMAL_RETURN;
@@ -1223,8 +1229,7 @@ hmlGraphCoreWriteEdgeInfoTsv4File(HmlGraphCore const *core,
 HmlErrCode
 hmlGraphCoreBindTexture(HmlGraphCore            *core,
                         const texture<uint32_t, 1> &texDataR,
-                        const texture<uint32_t, 1> &texDataE)
-{
+                        const texture<uint32_t, 1> &texDataE) {
   HML_ERR_PROLOGUE;
   size_t texOffset;
 
@@ -1232,7 +1237,7 @@ hmlGraphCoreBindTexture(HmlGraphCore            *core,
   HANDLE_ERROR(cudaBindTexture(&texOffset, texDataR, core->R0,
                                sizeof(uint32_t) * core->maxNumSrcVertices));
   /* check for non-zero offset */
-  if (texOffset != 0) {
+  if(texOffset != 0) {
     fprintf(stderr, "; Error: Row texture offset != 0\n");
     HML_ERR_GEN(texOffset, cHmlErrGeneral);
   }
@@ -1241,7 +1246,7 @@ hmlGraphCoreBindTexture(HmlGraphCore            *core,
   HANDLE_ERROR(cudaBindTexture(&texOffset, texDataE, core->E,
                                sizeof(uint32_t) * core->numEdges));
   /* check for non-zero offset */
-  if (texOffset != 0) {
+  if(texOffset != 0) {
     fprintf(stderr, "; Error: Edge texture offset != 0\n");
     HML_ERR_GEN(texOffset, cHmlErrGeneral);
   }
@@ -1251,8 +1256,7 @@ hmlGraphCoreBindTexture(HmlGraphCore            *core,
 
 HmlErrCode
 hmlGraphCoreUnbindTexture(const texture<uint32_t, 1> &texDataR,
-                          const texture<uint32_t, 1> &texDataE)
-{
+                          const texture<uint32_t, 1> &texDataE) {
   HML_ERR_PROLOGUE;
   HANDLE_ERROR(cudaUnbindTexture(texDataR));
   HANDLE_ERROR(cudaUnbindTexture(texDataE));
